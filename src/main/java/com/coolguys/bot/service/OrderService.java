@@ -111,6 +111,12 @@ public class OrderService {
         UserInfo targetUser = null;
         try {
             targetId = Long.valueOf(messageText);
+            if (targetId.equals(0L)) {
+                repository.deleteById(order.getId());
+                originUser.plusCredit(DEFAULT_PRICE);
+                userRepository.save(userMapper.toEntity(originUser));
+                return Optional.of(new SendMessage(order.getChatId(), "Замовлення скасовано"));
+            }
             targetUser = userRepository.findById(targetId)
                     .map(userMapper::toDto)
                     .orElse(null);
@@ -142,6 +148,6 @@ public class OrderService {
                 .stream()
                 .filter(u -> !u.getId().equals(originalUserId))
                 .map(user -> user.getId() + " - " + user.getUsername())
-                .reduce("Напиши мені ID жертви", (m, u2) -> m + "\n" + u2);
+                .reduce("Напиши мені ID жертви\n0 - Скасувати замовлення", (m, u2) -> m + "\n" + u2);
     }
 }

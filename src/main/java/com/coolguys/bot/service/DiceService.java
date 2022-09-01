@@ -20,12 +20,15 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DiceService {
+    private static final Integer REMOVE_BAN_PRICE = 100;
 
-    private final String PLUS_STICKER_ID = "CAACAgEAAxkBAAMMYw5PHFp_VtUGXqHA_-QeW-BqtusAAgIAA39wRhwFzGTYNyIryCkE";
+    private static final Integer BET_PRICE = 50;
 
-    private final String MINUS_STICKER_ID = "CAACAgEAAxkBAAMUYw5PxdZ65ASPUMgrHHyiyiSPdVQAAgMAA39wRhxDWYhLWOdGzSkE";
+    private static final Integer MIN_BALANCE = -50;
 
-    private static final Integer REMOVE_BAN_PRICE = 20;
+    private static final String PLUS_STICKER_ID = "CAACAgIAAxkBAAP2YxCaHIj1Kvj4-RG7a1T8q9Pb5MEAAt0BAAI9DegEVSWxKgJiwGEpBA";
+
+    private static final String MINUS_STICKER_ID = "CAACAgIAAxkBAAP3YxCaiWWASKtoKwABiUu7xuGX8t8yAALFAQACPQ3oBOdBQtf1YCO8KQQ";
 
     private final DiceRequestRepository diceRequestRepository;
     private final UserMapper userMapper;
@@ -45,7 +48,7 @@ public class DiceService {
             return;
         }
         diceRequestRepository.deleteAll(diceRequests);
-        originUser.minusCredit(20);
+        originUser.minusCredit(REMOVE_BAN_PRICE);
         userRepository.save(userMapper.toEntity(originUser));
         bot.execute(new SendMessage(originUser.getChatId(), String.format("@%s можеш грати знову", originUser.getUsername())));
     }
@@ -53,23 +56,29 @@ public class DiceService {
 
         if (diceRequestRepository.findAllByUserAndChatIdAndDateGreaterThan(userMapper.toEntity(originUser),
                 message.chat().id(),
-                LocalDateTime.now().minusHours(1L)).size() >= 3) {
+                LocalDateTime.now().minusHours(3L)).size() >= 3) {
             bot.execute(new SendMessage(message.chat().id(), "Відпочинь лудоман."));
             return;
         }
+
+        if ((originUser.getSocialCredit() - BET_PRICE) < MIN_BALANCE) {
+            bot.execute(new SendMessage(message.chat().id(), "Тобі не місце в цьому казіно жебрак."));
+            return;
+        }
+
         SendResponse response = bot.execute(new SendDice(message.chat().id())
                 .emoji(message.dice().emoji()));
 
         if (message.dice().value() > response.message().dice().value()) {
-            bot.execute(new SendMessage(message.chat().id(), String.format("@%s переміг", originUser.getUsername())));
-            originUser.setSocialCredit(originUser.getSocialCredit() + 20);
+            bot.execute(new SendMessage(message.chat().id(), String.format("@%s переміг і отримує %s кредитів", originUser.getUsername(), BET_PRICE)));
+            originUser.plusCredit(BET_PRICE);
             userRepository.save(userMapper.toEntity(originUser));
             bot.execute(new SendSticker(message.chat().id(), PLUS_STICKER_ID));
         } else if (message.dice().value().equals(response.message().dice().value())) {
             bot.execute(new SendMessage(message.chat().id(), "Нічия"));
         } else {
-            bot.execute(new SendMessage(message.chat().id(), String.format("@%s програв", originUser.getUsername())));
-            originUser.setSocialCredit(originUser.getSocialCredit() - 20);
+            bot.execute(new SendMessage(message.chat().id(), String.format("@%s програв %s кредитів", originUser.getUsername(), BET_PRICE)));
+            originUser.minusCredit(BET_PRICE);
             userRepository.save(userMapper.toEntity(originUser));
             bot.execute(new SendSticker(message.chat().id(), MINUS_STICKER_ID));
         }
