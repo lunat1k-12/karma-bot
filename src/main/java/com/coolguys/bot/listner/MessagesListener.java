@@ -103,17 +103,23 @@ public class MessagesListener implements UpdatesListener {
         log.info("proces message");
         UserInfo originUser = userService.loadUser(message);
         if (isValidForCreditsCount(message)) {
+            log.info("Process karma update");
             karmaService.processKarmaUpdate(message, originUser, bot);
         } else if (message.text() != null && CREDITS_COMMAND.equals(message.text())) {
+            log.info("Print Credits");
             printCredits(message);
         } else if (message.text() != null && AUTO_REPLY_COMMAND.equals(message.text())) {
+            log.info("Create auto-reply");
             orderService.createReplyOrder(originUser)
                     .ifPresent(bot::execute);
         } else if (message.text() != null && REMOVE_PLAY_BAN_COMMAND.equals(message.text())) {
+            log.info("remove play ban command");
             diceService.removePlayBan(originUser, bot);
         } else if (message.dice() != null) {
+            log.info("Process dice");
             diceService.processDice(message, originUser, bot);
         } else if (message.text() != null) {
+            log.info("Process text");
             messagesService.saveMessage(originUser, message);
             orderService.checkOrders(message.chat().id(), originUser, message.text().trim(), message.messageId())
                     .forEach(action -> action.ifPresent(bot::execute));
