@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="revision-1" author="evgen.chemeris">
+        <createTable tableName="karma_update">
+            <column name="id" type="INTEGER" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="user_id" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="chat_id" type="NUMBER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="target_user_id" type="INTEGER" />
+        </createTable>
+        <addForeignKeyConstraint baseTableName="karma_update"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_karma_update_origin"
+                                 referencedTableName="user_info"
+                                 referencedColumnNames="id" />
+
+        <addForeignKeyConstraint baseTableName="karma_update"
+                                 baseColumnNames="target_user_id"
+                                 constraintName="fk_karma_update_target"
+                                 referencedTableName="user_info"
+                                 referencedColumnNames="id" />
+    </changeSet>
+</databaseChangeLog>
