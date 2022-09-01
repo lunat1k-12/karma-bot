@@ -12,9 +12,7 @@ import com.pengrad.telegrambot.model.ChatMemberUpdated;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.User;
-import com.pengrad.telegrambot.request.BaseRequest;
 import com.pengrad.telegrambot.request.SendMessage;
-import com.pengrad.telegrambot.response.BaseResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -130,10 +128,6 @@ public class MessagesListener implements UpdatesListener {
                 .reduce("", (m, u2) -> m + "\n" + u2);
         log.info("Print Credits");
         bot.execute(new SendMessage(message.chat().id(), "Credits:\n" + msg));
-    }
-
-    public <T extends BaseRequest<T, R>, R extends BaseResponse> R execute(BaseRequest<T, R> request) {
-        return bot.execute(request);
     }
 
     private void updateChatMember(ChatMemberUpdated chat) {
