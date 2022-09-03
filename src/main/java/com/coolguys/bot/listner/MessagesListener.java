@@ -12,6 +12,7 @@ import com.coolguys.bot.service.OrderService;
 import com.coolguys.bot.service.UserService;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
+import com.pengrad.telegrambot.model.CallbackQuery;
 import com.pengrad.telegrambot.model.ChatMemberUpdated;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
@@ -51,7 +52,7 @@ public class MessagesListener implements UpdatesListener {
 
     private static final String REMOVE_PLAY_BAN_COMMAND = "/remove_play_ban@CoolGuys_Karma_bot";
 
-    private final String BOT_TOKEN = "5339250421:AAG02e6jq_jbqlszvvZTcFNVsPw_2NUW6RQ";
+        private final String BOT_TOKEN = "5339250421:AAG02e6jq_jbqlszvvZTcFNVsPw_2NUW6RQ";
 //    private final String BOT_TOKEN = "5698496704:AAHM2Ao0CAgviFZhbktIVL9chEsqBbmjEDg";
 
     private final TelegramBot bot;
@@ -91,6 +92,13 @@ public class MessagesListener implements UpdatesListener {
             if (update.message() != null) {
                 processMessage(update.message());
             }
+            if (update.callbackQuery() != null) {
+                CallbackQuery query = update.callbackQuery();
+                log.info("Query: {}", update.callbackQuery());
+                UserInfo originUser = userService.loadUser(query);
+                orderService.checkOrders(query.message().chat().id(), originUser, query.data(), -1, OrderService.Income.DATA)
+                        .forEach(action -> action.ifPresent(bot::execute));
+            }
         });
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
     }
@@ -108,6 +116,7 @@ public class MessagesListener implements UpdatesListener {
                 && usernameReply != null && !usernameFrom.equals(usernameReply)
                 && !message.replyToMessage().from().isBot();
     }
+
     private void processMessage(Message message) {
         log.info("proces message");
         UserInfo originUser = userService.loadUser(message);
@@ -130,7 +139,7 @@ public class MessagesListener implements UpdatesListener {
         } else if (message.text() != null) {
             log.info("Process text");
             messagesService.saveMessage(originUser, message);
-            orderService.checkOrders(message.chat().id(), originUser, message.text().trim(), message.messageId())
+            orderService.checkOrders(message.chat().id(), originUser, message.text().trim(), message.messageId(), OrderService.Income.TEXT)
                     .forEach(action -> action.ifPresent(bot::execute));
         }
 
@@ -148,8 +157,8 @@ public class MessagesListener implements UpdatesListener {
     private void updateChatMember(ChatMemberUpdated chat) {
         log.info("Process new chat");
         chatRepository.save(ChatEntity.builder()
-                        .name(chat.chat().title())
-                        .telegramId(chat.chat().id())
+                .name(chat.chat().title())
+                .telegramId(chat.chat().id())
                 .build());
 
         bot.execute(new SendMessage(chat.chat().id(), "Привіт хлопці"));

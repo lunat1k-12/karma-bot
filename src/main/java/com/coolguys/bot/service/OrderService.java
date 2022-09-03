@@ -8,11 +8,15 @@ import com.coolguys.bot.mapper.OrderMapper;
 import com.coolguys.bot.mapper.UserMapper;
 import com.coolguys.bot.repository.OrderRepository;
 import com.coolguys.bot.repository.UserRepository;
+import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
+import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
+import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.SendMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -50,21 +54,23 @@ public class OrderService {
         originUser.setSocialCredit(originUser.getSocialCredit() - DEFAULT_PRICE);
         userRepository.save(userMapper.toEntity(originUser));
         repository.save(orderMapper.toEntity(newOrder));
-        return Optional.of(new SendMessage(originUser.getChatId(), getTargetSelectionPerson(originUser.getChatId(), originUser.getId())));
+        return Optional.of(new SendMessage(originUser.getChatId(), "Обери жертву:")
+                .parseMode(ParseMode.HTML)
+                .replyMarkup(getTargetSelectionPersonKeyboard(originUser.getChatId(), originUser.getId())));
     }
 
     public List<Optional<SendMessage>> checkOrders(Long chatId,  UserInfo originUser,
-                                                   String messageText, Integer messageId) {
+                                                   String messageText, Integer messageId, Income source) {
         return getActiveOrders(chatId)
-                .map(order -> processReplyOrder(order, originUser, messageText, messageId))
+                .map(order -> processReplyOrder(order, originUser, messageText, messageId, source))
                 .filter(Optional::isPresent)
                 .collect(Collectors.toList());
     }
 
-    private Optional<SendMessage> processReplyOrder(Order order, UserInfo sender, String messageText, Integer messageId) {
+    private Optional<SendMessage> processReplyOrder(Order order, UserInfo sender, String messageText, Integer messageId, Income source) {
         switch(order.getStage()) {
             case TARGET_REQUIRED:
-                return processReplyTarget(order, messageText, sender, messageId);
+                return processReplyTarget(order, messageText, sender, source);
             case MESSAGE_REQUIRED:
                 return processReplyMessage(order, messageText, sender, messageId);
             case IN_PROGRESS:
@@ -101,10 +107,15 @@ public class OrderService {
                 .replyToMessageId(messageId));
     }
 
-    private Optional<SendMessage> processReplyTarget(Order order, String messageText, UserInfo originUser, Integer messageId) {
+    private Optional<SendMessage> processReplyTarget(Order order, String messageText, UserInfo originUser, Income source) {
 
         if (!order.getOriginUserId().equals(originUser.getId())) {
             return Optional.empty();
+        }
+
+        if (Income.TEXT.equals(source)) {
+            return Optional.of(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
+                    .replyMarkup(getTargetSelectionPersonKeyboard(order.getChatId(), originUser.getId())));
         }
 
         Long targetId = null;
@@ -121,33 +132,63 @@ public class OrderService {
                     .map(userMapper::toDto)
                     .orElse(null);
             if (targetUser == null || targetUser.getId().equals(originUser.getId())) {
-                return Optional.of(new SendMessage(order.getChatId(), wrongUserIdMessage(order.getChatId(), originUser.getId())));
+                return Optional.of(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
+                        .replyMarkup(getTargetSelectionPersonKeyboard(order.getChatId(), originUser.getId())));
             }
         } catch (NumberFormatException ex) {
             log.info("Invalid id: {}", messageText);
-            return Optional.of(new SendMessage(order.getChatId(), wrongUserIdMessage(order.getChatId(), originUser.getId())));
+            return Optional.of(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
+                    .replyMarkup(getTargetSelectionPersonKeyboard(order.getChatId(), originUser.getId())));
         }
 
         order.setTargetUser(targetUser);
         order.setStage(MESSAGE_REQUIRED);
         repository.save(orderMapper.toEntity(order));
-        return Optional.of(new SendMessage(order.getChatId(), "Ок, тепер напиши який текст ти хочеш встановити на автовідповідь")
-                .replyToMessageId(messageId));
-    }
-
-    private String wrongUserIdMessage(Long chatId, Long originalUserId) {
-        return "Невірний ID, спробуй ще\n" + getTargetSelectionPerson(chatId, originalUserId);
+        return Optional.of(new SendMessage(order.getChatId(), "Ок, тепер напиши який текст ти хочеш встановити на автовідповідь"));
     }
     private Stream<Order> getActiveOrders(Long chatId) {
         return repository.findAllByChatIdAndStageIsNot(chatId, ReplyOrderStage.DONE.getId())
                 .stream()
                 .map(orderMapper::toDto);
     }
-    private String getTargetSelectionPerson(Long chatId, Long originalUserId) {
-        return userRepository.findByChatId(chatId)
+
+    private InlineKeyboardMarkup getTargetSelectionPersonKeyboard(Long chatId, Long originalUserId) {
+        List<UserInfo> users = userRepository.findByChatId(chatId)
                 .stream()
                 .filter(u -> !u.getId().equals(originalUserId))
-                .map(user -> user.getId() + " - " + user.getUsername())
-                .reduce("Напиши мені ID жертви\n0 - Скасувати замовлення", (m, u2) -> m + "\n" + u2);
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
+
+        UserInfo cancelUser = UserInfo.builder()
+                .id(0L)
+                .username("Відмінити")
+                .build();
+
+        List<UserInfo> usersToProcess = new ArrayList<>();
+        usersToProcess.add(cancelUser);
+        usersToProcess.addAll(users);
+
+        int verticalRowCount = Double.valueOf(Math.ceil(Integer.valueOf(usersToProcess.size()).doubleValue() / 2)).intValue();
+        InlineKeyboardButton[][] keys = new InlineKeyboardButton[verticalRowCount][2];
+
+        int usersIndex = 0;
+        for (int i = 0; i < keys.length; i++) {
+            for (int j=0; j < keys[i].length; j++) {
+                if (usersToProcess.size() > usersIndex) {
+                    UserInfo user = usersToProcess.get(usersIndex);
+                    keys[i][j] = new InlineKeyboardButton(user.getUsername()).callbackData(user.getId().toString());
+                    usersIndex++;
+                }
+            }
+        }
+
+        if (usersToProcess.size() % 2 != 0) {
+            keys[verticalRowCount - 1] = new InlineKeyboardButton[]{keys[verticalRowCount - 1][0]};
+        }
+        return new InlineKeyboardMarkup(keys);
+    }
+
+    public enum Income {
+        TEXT, DATA;
     }
 }
