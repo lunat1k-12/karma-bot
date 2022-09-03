@@ -17,6 +17,7 @@ import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.User;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.request.SendSticker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -74,6 +75,10 @@ public class MessagesListener implements UpdatesListener {
 
     public void sendMessage(Long chatId, String message) {
         bot.execute(new SendMessage(chatId, message));
+    }
+
+    public void sendSticker(Long chatId, String stickerId) {
+        bot.execute(new SendSticker(chatId, stickerId));
     }
 
     @Override

@@ -14,7 +14,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -36,13 +38,58 @@ public class ScheduledTasksService {
 
     private final UserMapper userMapper;
 
-    @Scheduled(cron = "00 00 13 * * MON")
+    private static final String TOP_STICKER = "CAACAgIAAxkBAAIBTGMQ3leswu0305mH8dYR1BByXz_dAAJmAQACPQ3oBOMh-z8iW4cZKQQ";
+
+    private static final String BOTTOM_STICKER = "CAACAgIAAxkBAAIBTWMQ3suJoK8YxnByTPusiWNyxAsyAAJ_EAAC-VZgS5YaUypWFf_HKQQ";
+
+    @Scheduled(cron = "00 00 07 * * *")
+    public void getTopAndWorstUser() {
+        StreamSupport.stream(userRepository.findAll().spliterator(), false)
+                .map(UserEntity::getChatId)
+                .collect(Collectors.toSet())
+                .forEach(this::getTopAndWorstUser);
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            log.error("getTopAndWorstUser - Exception while sleep");
+        }
+    }
+
+    private void getTopAndWorstUser(Long chatId) {
+        List<UserInfo> users = userRepository.findByChatId(chatId).stream()
+                .map(userMapper::toDto)
+                .collect(Collectors.toList());
+
+        Random random = new Random();
+
+        int topIndex = random.nextInt(users.size());
+        int bottomIndex = -1;
+        do {
+            bottomIndex = random.nextInt(users.size());
+        } while (bottomIndex == topIndex);
+
+        log.info("Top user - {}, chatId: {}", users.get(topIndex).getUsername(), chatId);
+        log.info("Bottom user - {}, chatId: {}", users.get(bottomIndex).getUsername(), chatId);
+
+        messagesListener.sendMessage(chatId, String.format("Шановне Панство, Увага!\nТоп хлопак на сьогодні: @%s", users.get(topIndex).getUsername()));
+        messagesListener.sendSticker(chatId, TOP_STICKER);
+        messagesListener.sendMessage(chatId, String.format("І на самому дні нас сьогодні чекає @%s", users.get(bottomIndex).getUsername()));
+        messagesListener.sendSticker(chatId, BOTTOM_STICKER);
+    }
+
+    @Scheduled(cron = "00 00 08 * * MON")
     public void processMostActiveUser() {
         Set<Long> chatIds = StreamSupport.stream(userRepository.findAll().spliterator(), false)
                 .map(UserEntity::getChatId)
                 .collect(Collectors.toSet());
 
         chatIds.forEach(this::processChatMostActiveUser);
+
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            log.error("processMostActiveUser - Exception while sleep");
+        }
     }
 
     private void processChatMostActiveUser(Long chatId) {
