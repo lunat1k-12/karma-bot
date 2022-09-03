@@ -17,6 +17,7 @@ import com.pengrad.telegrambot.model.ChatMemberUpdated;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.User;
+import com.pengrad.telegrambot.request.DeleteMessage;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendSticker;
 import lombok.extern.slf4j.Slf4j;
@@ -52,7 +53,7 @@ public class MessagesListener implements UpdatesListener {
 
     private static final String REMOVE_PLAY_BAN_COMMAND = "/remove_play_ban@CoolGuys_Karma_bot";
 
-        private final String BOT_TOKEN = "5339250421:AAG02e6jq_jbqlszvvZTcFNVsPw_2NUW6RQ";
+    private final String BOT_TOKEN = "5339250421:AAG02e6jq_jbqlszvvZTcFNVsPw_2NUW6RQ";
 //    private final String BOT_TOKEN = "5698496704:AAHM2Ao0CAgviFZhbktIVL9chEsqBbmjEDg";
 
     private final TelegramBot bot;
@@ -130,6 +131,7 @@ public class MessagesListener implements UpdatesListener {
             log.info("Create auto-reply");
             orderService.createReplyOrder(originUser)
                     .ifPresent(bot::execute);
+            bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
         } else if (message.text() != null && REMOVE_PLAY_BAN_COMMAND.equals(message.text())) {
             log.info("remove play ban command");
             diceService.removePlayBan(originUser, bot);
@@ -140,7 +142,7 @@ public class MessagesListener implements UpdatesListener {
             log.info("Process text");
             messagesService.saveMessage(originUser, message);
             orderService.checkOrders(message.chat().id(), originUser, message.text().trim(), message.messageId(), OrderService.Income.TEXT)
-                    .forEach(action -> action.ifPresent(bot::execute));
+                    .forEach(action -> action.ifPresent(a -> System.out.println(bot.execute(a))));
         }
 
     }

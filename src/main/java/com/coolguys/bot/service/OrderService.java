@@ -11,18 +11,23 @@ import com.coolguys.bot.repository.UserRepository;
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
 import com.pengrad.telegrambot.model.request.ParseMode;
+import com.pengrad.telegrambot.request.BaseRequest;
+import com.pengrad.telegrambot.request.DeleteMessage;
 import com.pengrad.telegrambot.request.SendMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.coolguys.bot.dto.ReplyOrderStage.*;
+import static com.coolguys.bot.dto.ReplyOrderStage.DONE;
+import static com.coolguys.bot.dto.ReplyOrderStage.IN_PROGRESS;
+import static com.coolguys.bot.dto.ReplyOrderStage.MESSAGE_REQUIRED;
 
 @Service
 @RequiredArgsConstructor
@@ -59,29 +64,29 @@ public class OrderService {
                 .replyMarkup(getTargetSelectionPersonKeyboard(originUser.getChatId(), originUser.getId())));
     }
 
-    public List<Optional<SendMessage>> checkOrders(Long chatId,  UserInfo originUser,
+    public List<Optional<BaseRequest>> checkOrders(Long chatId, UserInfo originUser,
                                                    String messageText, Integer messageId, Income source) {
         return getActiveOrders(chatId)
-                .map(order -> processReplyOrder(order, originUser, messageText, messageId, source))
+                .flatMap(order -> processReplyOrder(order, originUser, messageText, messageId, source).stream())
                 .filter(Optional::isPresent)
                 .collect(Collectors.toList());
     }
 
-    private Optional<SendMessage> processReplyOrder(Order order, UserInfo sender, String messageText, Integer messageId, Income source) {
+    private List<Optional<BaseRequest>> processReplyOrder(Order order, UserInfo sender, String messageText, Integer messageId, Income source) {
         switch(order.getStage()) {
             case TARGET_REQUIRED:
-                return processReplyTarget(order, messageText, sender, source);
+                return List.of(processReplyTarget(order, messageText, sender, source));
             case MESSAGE_REQUIRED:
                 return processReplyMessage(order, messageText, sender, messageId, source);
             case IN_PROGRESS:
-                return processInProgressMessage(order, sender, messageId, source);
+                return List.of(processInProgressMessage(order, sender, messageId, source));
         }
 
         log.info("unknown Order stage - {}", order.getStage());
-        return Optional.empty();
+        return Collections.emptyList();
     }
 
-    private Optional<SendMessage> processInProgressMessage(Order order, UserInfo targetUser, Integer messageId, Income source) {
+    private Optional<BaseRequest> processInProgressMessage(Order order, UserInfo targetUser, Integer messageId, Income source) {
         if (!order.getTargetUser().getId().equals(targetUser.getId()) || Income.DATA.equals(source)) {
             return Optional.empty();
         }
@@ -94,20 +99,22 @@ public class OrderService {
         return Optional.of(new SendMessage(order.getChatId(), order.getRespondMessage())
                 .replyToMessageId(messageId));
     }
-    private Optional<SendMessage> processReplyMessage(Order order, String messageText, UserInfo originUser, Integer messageId, Income source) {
+    private List<Optional<BaseRequest>> processReplyMessage(Order order, String messageText, UserInfo originUser, Integer messageId, Income source) {
+        List<Optional<BaseRequest>> result = new ArrayList<>();
         if (!order.getOriginUserId().equals(originUser.getId()) || Income.DATA.equals(source)) {
-            return Optional.empty();
+            return result;
         }
 
         order.setRespondMessage(messageText);
         order.setStage(IN_PROGRESS);
 
         repository.save(orderMapper.toEntity(order));
-        return Optional.of(new SendMessage(order.getChatId(), "Відповідь встановленно")
-                .replyToMessageId(messageId));
+        result.add(Optional.of(new SendMessage(order.getChatId(), "Відповідь встановленно")));
+        result.add(Optional.of(new DeleteMessage(order.getChatId(), messageId)));
+        return result;
     }
 
-    private Optional<SendMessage> processReplyTarget(Order order, String messageText, UserInfo originUser, Income source) {
+    private Optional<BaseRequest> processReplyTarget(Order order, String messageText, UserInfo originUser, Income source) {
 
         if (!order.getOriginUserId().equals(originUser.getId())) {
             return Optional.empty();
