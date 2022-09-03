@@ -72,17 +72,17 @@ public class OrderService {
             case TARGET_REQUIRED:
                 return processReplyTarget(order, messageText, sender, source);
             case MESSAGE_REQUIRED:
-                return processReplyMessage(order, messageText, sender, messageId);
+                return processReplyMessage(order, messageText, sender, messageId, source);
             case IN_PROGRESS:
-                return processInProgressMessage(order, sender, messageId);
+                return processInProgressMessage(order, sender, messageId, source);
         }
 
         log.info("unknown Order stage - {}", order.getStage());
         return Optional.empty();
     }
 
-    private Optional<SendMessage> processInProgressMessage(Order order, UserInfo targetUser, Integer messageId) {
-        if (!order.getTargetUser().getId().equals(targetUser.getId())) {
+    private Optional<SendMessage> processInProgressMessage(Order order, UserInfo targetUser, Integer messageId, Income source) {
+        if (!order.getTargetUser().getId().equals(targetUser.getId()) || Income.DATA.equals(source)) {
             return Optional.empty();
         }
 
@@ -94,8 +94,8 @@ public class OrderService {
         return Optional.of(new SendMessage(order.getChatId(), order.getRespondMessage())
                 .replyToMessageId(messageId));
     }
-    private Optional<SendMessage> processReplyMessage(Order order, String messageText, UserInfo originUser, Integer messageId) {
-        if (!order.getOriginUserId().equals(originUser.getId())) {
+    private Optional<SendMessage> processReplyMessage(Order order, String messageText, UserInfo originUser, Integer messageId, Income source) {
+        if (!order.getOriginUserId().equals(originUser.getId()) || Income.DATA.equals(source)) {
             return Optional.empty();
         }
 
