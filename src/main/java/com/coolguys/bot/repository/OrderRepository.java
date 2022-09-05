@@ -10,4 +10,5 @@ import java.util.List;
 public interface OrderRepository extends CrudRepository<OrderEntity, Long> {
 
     List<OrderEntity> findAllByChatIdAndStageIsNot(Long chatId, String stage);
+    List<OrderEntity> findAllByChatIdAndStageAndOriginUserId(Long chatId, String stage, Long originUserId);
 }

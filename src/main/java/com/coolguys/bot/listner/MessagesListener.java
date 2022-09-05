@@ -1,5 +1,6 @@
 package com.coolguys.bot.listner;
 
+import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.entity.ChatEntity;
 import com.coolguys.bot.mapper.UserMapper;
@@ -9,7 +10,9 @@ import com.coolguys.bot.service.DiceService;
 import com.coolguys.bot.service.KarmaService;
 import com.coolguys.bot.service.MessagesService;
 import com.coolguys.bot.service.OrderService;
+import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.UserService;
+import com.google.gson.Gson;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.CallbackQuery;
@@ -27,6 +30,9 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.Optional;
 
+import static com.coolguys.bot.dto.QueryDataDto.REPLY_ORDER_TYPE;
+import static com.coolguys.bot.dto.QueryDataDto.STEAL_TYPE;
+
 @Slf4j
 @Component
 public class MessagesListener implements UpdatesListener {
@@ -34,16 +40,12 @@ public class MessagesListener implements UpdatesListener {
     private final ChatRepository chatRepository;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-
     private final OrderService orderService;
-
     private final DiceService diceService;
-
     private final KarmaService karmaService;
-
     private final UserService userService;
-
     private final MessagesService messagesService;
+    private final StealService stealService;
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
@@ -52,6 +54,8 @@ public class MessagesListener implements UpdatesListener {
     private static final String AUTO_REPLY_COMMAND = "/auto_reply@CoolGuys_Karma_bot";
 
     private static final String REMOVE_PLAY_BAN_COMMAND = "/remove_play_ban@CoolGuys_Karma_bot";
+
+    private static final String STEAL_COMMAND = "/steal@CoolGuys_Karma_bot";
 
     private final String BOT_TOKEN = "5339250421:AAG02e6jq_jbqlszvvZTcFNVsPw_2NUW6RQ";
 //    private final String BOT_TOKEN = "5698496704:AAHM2Ao0CAgviFZhbktIVL9chEsqBbmjEDg";
@@ -62,7 +66,8 @@ public class MessagesListener implements UpdatesListener {
     public MessagesListener(ChatRepository chatRepository, UserRepository userRepository,
                             UserMapper userMapper, OrderService orderService,
                             DiceService diceService, KarmaService karmaService,
-                            UserService userService, MessagesService messagesService) {
+                            UserService userService, MessagesService messagesService,
+                            StealService stealService) {
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -71,6 +76,7 @@ public class MessagesListener implements UpdatesListener {
         this.karmaService = karmaService;
         this.userService = userService;
         this.messagesService = messagesService;
+        this.stealService = stealService;
         this.bot = new TelegramBot(BOT_TOKEN);
         bot.setUpdatesListener(this);
     }
@@ -96,9 +102,20 @@ public class MessagesListener implements UpdatesListener {
             if (update.callbackQuery() != null) {
                 CallbackQuery query = update.callbackQuery();
                 log.info("Query: {}", update.callbackQuery());
+                Gson gson = new Gson();
+                QueryDataDto dto = gson.fromJson(query.data(), QueryDataDto.class);
                 UserInfo originUser = userService.loadUser(query);
-                orderService.checkOrders(query.message().chat().id(), originUser, query.data(), -1, OrderService.Income.DATA)
-                        .forEach(action -> action.ifPresent(bot::execute));
+                switch (dto.getType()) {
+                    case REPLY_ORDER_TYPE:
+                        log.info("Reply order query");
+                        orderService.checkOrders(query.message().chat().id(), originUser, dto.getOption(), -1, OrderService.Income.DATA)
+                                .forEach(action -> action.ifPresent(bot::execute));
+                        break;
+                    case STEAL_TYPE:
+                        log.info("Steal query");
+                        stealService.processSteal(originUser, dto, bot);
+                        break;
+                }
             }
         });
         return UpdatesListener.CONFIRMED_UPDATES_ALL;
@@ -135,6 +152,10 @@ public class MessagesListener implements UpdatesListener {
         } else if (message.text() != null && REMOVE_PLAY_BAN_COMMAND.equals(message.text())) {
             log.info("remove play ban command");
             diceService.removePlayBan(originUser, bot);
+        } else if (message.text() != null && STEAL_COMMAND.equals(message.text())) {
+            log.info("New steal command");
+            stealService.stealRequest(originUser, bot);
+            bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
         } else if (message.dice() != null) {
             log.info("Process dice");
             diceService.processDice(message, originUser, bot);

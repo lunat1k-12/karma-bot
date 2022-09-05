@@ -3,6 +3,7 @@ package com.coolguys.bot.service;
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.entity.DiceRequestEntity;
 import com.coolguys.bot.mapper.UserMapper;
+import com.coolguys.bot.repository.BanRecordRepository;
 import com.coolguys.bot.repository.DiceRequestRepository;
 import com.coolguys.bot.repository.UserRepository;
 import com.pengrad.telegrambot.TelegramBot;
@@ -33,6 +34,7 @@ public class DiceService {
     private final DiceRequestRepository diceRequestRepository;
     private final UserMapper userMapper;
     private final UserRepository userRepository;
+    private final BanRecordRepository banRecordRepository;
 
     public void removePlayBan(UserInfo originUser, TelegramBot bot) {
         List<DiceRequestEntity> diceRequests = diceRequestRepository.findAllByUserAndChatIdAndDateGreaterThan(userMapper.toEntity(originUser),
@@ -58,6 +60,12 @@ public class DiceService {
                 message.chat().id(),
                 LocalDateTime.now().minusHours(3L)).size() >= 3) {
             bot.execute(new SendMessage(message.chat().id(), "Відпочинь лудоман."));
+            return;
+        }
+
+        if (!banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(originUser),
+                originUser.getChatId(), LocalDateTime.now()).isEmpty()) {
+            bot.execute(new SendMessage(message.chat().id(), "Злочинцям не місце у казіно!."));
             return;
         }
 

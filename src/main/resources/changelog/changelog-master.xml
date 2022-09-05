@@ -12,4 +12,5 @@
     <include file="/changelog/changes/create-messages-table.xml"/>
     <include file="/changelog/changes/create-dice-requests-table.xml"/>
     <include file="/changelog/changes/create-karma-update-table.xml"/>
+    <include file="/changelog/changes/create-ban-record-table.xml"/>
 </databaseChangeLog>

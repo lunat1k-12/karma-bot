@@ -3,7 +3,8 @@ package com.coolguys.bot.dto;
 import java.util.Arrays;
 
 public enum OrderType {
-    MESSAGE_REPLY("target_required");
+    MESSAGE_REPLY("target_required"),
+    STEAL("steal");
 
     private final String id;
 
