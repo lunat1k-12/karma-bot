@@ -26,7 +26,9 @@ import java.util.stream.StreamSupport;
 @Slf4j
 public class ScheduledTasksService {
 
-    private static final Integer PRICE = 100;
+    private static final Integer PRICE = 200;
+
+    private static final Integer TOP_PRICE = 100;
 
     private final ChatMessageRepository chatMessageRepository;
 
@@ -71,10 +73,14 @@ public class ScheduledTasksService {
         log.info("Top user - {}, chatId: {}", users.get(topIndex).getUsername(), chatId);
         log.info("Bottom user - {}, chatId: {}", users.get(bottomIndex).getUsername(), chatId);
 
-        messagesListener.sendMessage(chatId, String.format("Шановне Панство, Увага!\nТоп хлопак на сьогодні: @%s", users.get(topIndex).getUsername()));
+        messagesListener.sendMessage(chatId, String.format("Шановне Панство, Увага!\nТоп хлопак на сьогодні: @%s\n" +
+                "він отримує %s кредитів", users.get(topIndex).getUsername(), TOP_PRICE));
         messagesListener.sendSticker(chatId, TOP_STICKER);
         messagesListener.sendMessage(chatId, String.format("І на самому дні нас сьогодні чекає @%s", users.get(bottomIndex).getUsername()));
         messagesListener.sendSticker(chatId, BOTTOM_STICKER);
+        UserInfo topUser = users.get(topIndex);
+        topUser.plusCredit(TOP_PRICE);
+        userRepository.save(userMapper.toEntity(topUser));
     }
 
     @Scheduled(cron = "00 00 08 * * MON")

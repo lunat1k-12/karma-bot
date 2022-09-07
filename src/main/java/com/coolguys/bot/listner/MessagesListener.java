@@ -7,6 +7,7 @@ import com.coolguys.bot.mapper.UserMapper;
 import com.coolguys.bot.repository.ChatRepository;
 import com.coolguys.bot.repository.UserRepository;
 import com.coolguys.bot.service.DiceService;
+import com.coolguys.bot.service.GuardService;
 import com.coolguys.bot.service.KarmaService;
 import com.coolguys.bot.service.MessagesService;
 import com.coolguys.bot.service.OrderService;
@@ -46,6 +47,7 @@ public class MessagesListener implements UpdatesListener {
     private final UserService userService;
     private final MessagesService messagesService;
     private final StealService stealService;
+    private final GuardService guardService;
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
@@ -57,6 +59,8 @@ public class MessagesListener implements UpdatesListener {
 
     private static final String STEAL_COMMAND = "/steal@CoolGuys_Karma_bot";
 
+    private static final String BUY_GUARD_COMMAND = "/buy_guard@CoolGuys_Karma_bot";
+
     private final String BOT_TOKEN = "5339250421:AAG02e6jq_jbqlszvvZTcFNVsPw_2NUW6RQ";
 //    private final String BOT_TOKEN = "5698496704:AAHM2Ao0CAgviFZhbktIVL9chEsqBbmjEDg";
 
@@ -67,7 +71,7 @@ public class MessagesListener implements UpdatesListener {
                             UserMapper userMapper, OrderService orderService,
                             DiceService diceService, KarmaService karmaService,
                             UserService userService, MessagesService messagesService,
-                            StealService stealService) {
+                            StealService stealService, GuardService guardService) {
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -77,6 +81,7 @@ public class MessagesListener implements UpdatesListener {
         this.userService = userService;
         this.messagesService = messagesService;
         this.stealService = stealService;
+        this.guardService = guardService;
         this.bot = new TelegramBot(BOT_TOKEN);
         bot.setUpdatesListener(this);
     }
@@ -156,6 +161,9 @@ public class MessagesListener implements UpdatesListener {
             log.info("New steal command");
             stealService.stealRequest(originUser, bot);
             bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
+        } else if (message.text() != null && BUY_GUARD_COMMAND.equals(message.text())) {
+            log.info("Buy guard request");
+            guardService.buyGuard(originUser, bot);
         } else if (message.dice() != null) {
             log.info("Process dice");
             diceService.processDice(message, originUser, bot);
@@ -171,10 +179,21 @@ public class MessagesListener implements UpdatesListener {
     private void printCredits(Message message) {
         String msg = userRepository.findByChatId(message.chat().id()).stream()
                 .map(userMapper::toDto)
-                .map(u -> String.format("%s : %s", u.getUsername(), u.getSocialCredit()))
+                .map(this::toStringInfo)
                 .reduce("", (m, u2) -> m + "\n" + u2);
         log.info("Print Credits");
         bot.execute(new SendMessage(message.chat().id(), "Credits:\n" + msg));
+    }
+
+    private String toStringInfo(UserInfo user) {
+        StringBuilder sb = new StringBuilder(String.format("%s : %s ", user.getUsername(), user.getSocialCredit()));
+        if (guardService.doesHaveGuard(user)) {
+            sb.append("⚔️");
+        }
+        if (stealService.isInJail(user)) {
+            sb.append("⛓");
+        }
+        return sb.toString();
     }
 
     private void updateChatMember(ChatMemberUpdated chat) {

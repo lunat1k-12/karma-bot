@@ -6,6 +6,7 @@ import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.ReplyOrderStage;
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.entity.BanRecordEntity;
+import com.coolguys.bot.entity.UserEntity;
 import com.coolguys.bot.mapper.OrderMapper;
 import com.coolguys.bot.mapper.UserMapper;
 import com.coolguys.bot.repository.BanRecordRepository;
@@ -14,6 +15,7 @@ import com.coolguys.bot.repository.UserRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendDice;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.request.SendSticker;
 import com.pengrad.telegrambot.response.SendResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,13 +35,24 @@ public class StealService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
+    private final GuardService guardService;
     public static final int PAUSE_MILLIS = 3000;
+    public static final int STEAL_BORDER = 1000;
+
+    public static final String POLICE_STICKER = "CAACAgIAAxkBAAICjmMWTBExj7-WpA_pWEKOaWmaaK71AALkBwACRvusBOq-PekdJ3n1KQQ";
     public static final int FEE = 100;
 
     public void stealRequest(UserInfo originUser, TelegramBot bot) {
         log.info("New steal request from {}", originUser.getUsername());
-        if (!banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(originUser),
-                originUser.getChatId(), LocalDateTime.now()).isEmpty()) {
+
+        if (userRepository.findByChatId(originUser.getChatId()).stream()
+                .mapToInt(UserEntity::getSocialCredit).sum() < STEAL_BORDER) {
+            bot.execute(new SendMessage(originUser.getChatId(), String.format("Крадіжки будуть дозволені коли" +
+                    " сумарний банк буде вище ніж %s кредитів", STEAL_BORDER)));
+            return;
+        }
+
+        if (isInJail(originUser)) {
             bot.execute(new SendMessage(originUser.getChatId(), "Куди ти лізеш ворюга, тебе вже за руку спіймали!"));
             return;
         }
@@ -99,8 +112,17 @@ public class StealService {
                 return;
             }
 
+            if (guardService.doesHaveGuard(targetUser)) {
+                bot.execute(new SendMessage(originUser.getChatId(), String.format("%s має охорону! %s спіймали." +
+                        "Штраф %s і заборона на доступ до казино на 24 години!", targetUser.getUsername(), originUser.getUsername(), FEE)));
+                bot.execute(new SendSticker(originUser.getChatId(), POLICE_STICKER));
+                busted(originUser);
+                return;
+            }
+
             bot.execute(new SendMessage(originUser.getChatId(),
                     String.format("Невідомий намагається вкрасти у @%s", targetUser.getUsername())));
+
 
 
             Thread.sleep(PAUSE_MILLIS);
@@ -123,18 +145,29 @@ public class StealService {
                 userRepository.save(userMapper.toEntity(originUser));
             } else {
                 bot.execute(new SendMessage(originUser.getChatId(), String.format("Невдача! @%s спіймали за руку. Штраф %s і " +
-                        "заборона на доступ до казино на 24 години!", originUser.getUsername(), FEE)));
-                originUser.minusCredit(FEE);
-                userRepository.save(userMapper.toEntity(originUser));
-                banRecordRepository.save(BanRecordEntity.builder()
-                        .user(userMapper.toEntity(originUser))
-                        .expires(LocalDateTime.now().plusHours(24))
-                        .chatId(originUser.getChatId())
-                        .build());
+                        "заборона на доступ до казино на 24 години! Якщо в тебе була охорона, то її більше нема.",
+                        originUser.getUsername(), FEE)));
+                bot.execute(new SendSticker(originUser.getChatId(), POLICE_STICKER));
+                busted(originUser);
             }
 
         } catch (InterruptedException e) {
             log.error("Error while steal", e);
         }
+    }
+
+    public boolean isInJail(UserInfo user) {
+        return !banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(user),
+                user.getChatId(), LocalDateTime.now()).isEmpty();
+    }
+    private void busted(UserInfo originUser) {
+        originUser.minusCredit(FEE);
+        userRepository.save(userMapper.toEntity(originUser));
+        guardService.deleteGuard(originUser);
+        banRecordRepository.save(BanRecordEntity.builder()
+                .user(userMapper.toEntity(originUser))
+                .expires(LocalDateTime.now().plusHours(24))
+                .chatId(originUser.getChatId())
+                .build());
     }
 }
