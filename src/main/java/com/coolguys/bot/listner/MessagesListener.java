@@ -65,9 +65,6 @@ public class MessagesListener implements UpdatesListener {
 
     private static final String BUY_GUARD_COMMAND = "/buy_guard@CoolGuys_Karma_bot";
 
-//    private final String BOT_TOKEN = "5339250421:AAG02e6jq_jbqlszvvZTcFNVsPw_2NUW6RQ";
-//    private final String BOT_TOKEN = "5698496704:AAHM2Ao0CAgviFZhbktIVL9chEsqBbmjEDg";
-
     private final TelegramBot bot;
 
     @Autowired
