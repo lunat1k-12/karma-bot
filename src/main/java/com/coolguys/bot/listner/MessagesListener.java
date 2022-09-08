@@ -1,5 +1,6 @@
 package com.coolguys.bot.listner;
 
+import com.coolguys.bot.conf.BotConfig;
 import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.entity.ChatEntity;
@@ -28,8 +29,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.coolguys.bot.dto.QueryDataDto.REPLY_ORDER_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.STEAL_TYPE;
@@ -48,6 +51,7 @@ public class MessagesListener implements UpdatesListener {
     private final MessagesService messagesService;
     private final StealService stealService;
     private final GuardService guardService;
+    private final BotConfig botConfig;
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
@@ -61,7 +65,7 @@ public class MessagesListener implements UpdatesListener {
 
     private static final String BUY_GUARD_COMMAND = "/buy_guard@CoolGuys_Karma_bot";
 
-    private final String BOT_TOKEN = "5339250421:AAG02e6jq_jbqlszvvZTcFNVsPw_2NUW6RQ";
+//    private final String BOT_TOKEN = "5339250421:AAG02e6jq_jbqlszvvZTcFNVsPw_2NUW6RQ";
 //    private final String BOT_TOKEN = "5698496704:AAHM2Ao0CAgviFZhbktIVL9chEsqBbmjEDg";
 
     private final TelegramBot bot;
@@ -71,7 +75,8 @@ public class MessagesListener implements UpdatesListener {
                             UserMapper userMapper, OrderService orderService,
                             DiceService diceService, KarmaService karmaService,
                             UserService userService, MessagesService messagesService,
-                            StealService stealService, GuardService guardService) {
+                            StealService stealService, GuardService guardService,
+                            BotConfig botConfig) {
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -82,7 +87,9 @@ public class MessagesListener implements UpdatesListener {
         this.messagesService = messagesService;
         this.stealService = stealService;
         this.guardService = guardService;
-        this.bot = new TelegramBot(BOT_TOKEN);
+        this.botConfig = botConfig;
+        log.info("Bot Token: {}", botConfig.getToken());
+        this.bot = new TelegramBot(botConfig.getToken());
         bot.setUpdatesListener(this);
     }
 
@@ -171,16 +178,31 @@ public class MessagesListener implements UpdatesListener {
             log.info("Process text");
             messagesService.saveMessage(originUser, message);
             orderService.checkOrders(message.chat().id(), originUser, message.text().trim(), message.messageId(), OrderService.Income.TEXT)
-                    .forEach(action -> action.ifPresent(a -> System.out.println(bot.execute(a))));
+                    .forEach(action -> action.ifPresent(bot::execute));
         }
 
     }
 
     private void printCredits(Message message) {
-        String msg = userRepository.findByChatId(message.chat().id()).stream()
+        List<String> lines = userRepository.findByChatId(message.chat().id()).stream()
                 .map(userMapper::toDto)
+                .sorted(Comparator.comparingInt(UserInfo::getSocialCredit)
+                        .reversed())
                 .map(this::toStringInfo)
+                .collect(Collectors.toList());
+
+        if (lines.size() >= 1) {
+            lines.set(0, "\uD83E\uDD47" + lines.get(0));
+        }
+        if (lines.size() >= 2) {
+            lines.set(1, "\uD83E\uDD48" + lines.get(1));
+        }
+        if (lines.size() >= 3) {
+            lines.set(2, "\uD83E\uDD49" + lines.get(2));
+        }
+        String msg = lines.stream()
                 .reduce("", (m, u2) -> m + "\n" + u2);
+
         log.info("Print Credits");
 
         bot.execute(new SendMessage(message.chat().id(),
