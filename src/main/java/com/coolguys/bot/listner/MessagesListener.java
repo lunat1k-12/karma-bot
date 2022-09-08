@@ -182,7 +182,13 @@ public class MessagesListener implements UpdatesListener {
                 .map(this::toStringInfo)
                 .reduce("", (m, u2) -> m + "\n" + u2);
         log.info("Print Credits");
-        bot.execute(new SendMessage(message.chat().id(), "Credits:\n" + msg));
+
+        bot.execute(new SendMessage(message.chat().id(),
+                "Credits:\n" +
+                        msg +
+                        "\n****************" +
+                        "\nTotal Credits: " +
+                        stealService.creditsSum(message.chat().id())));
     }
 
     private String toStringInfo(UserInfo user) {

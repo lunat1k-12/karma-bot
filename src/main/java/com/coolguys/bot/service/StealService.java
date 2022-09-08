@@ -45,15 +45,16 @@ public class StealService {
     public void stealRequest(UserInfo originUser, TelegramBot bot) {
         log.info("New steal request from {}", originUser.getUsername());
 
-        if (userRepository.findByChatId(originUser.getChatId()).stream()
-                .mapToInt(UserEntity::getSocialCredit).sum() < STEAL_BORDER) {
+        if (creditsSum(originUser.getChatId()) < STEAL_BORDER) {
             bot.execute(new SendMessage(originUser.getChatId(), String.format("Крадіжки будуть дозволені коли" +
                     " сумарний банк буде вище ніж %s кредитів", STEAL_BORDER)));
+            log.info("Credits sum is not enough for stealing");
             return;
         }
 
         if (isInJail(originUser)) {
             bot.execute(new SendMessage(originUser.getChatId(), "Куди ти лізеш ворюга, тебе вже за руку спіймали!"));
+            log.info("User is in jail");
             return;
         }
 
@@ -80,6 +81,7 @@ public class StealService {
 
         bot.execute(new SendMessage(originUser.getChatId(), "Обери кого хочеш обокрасти:")
                 .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(originUser.getChatId(), originUser.getId(), QueryDataDto.STEAL_TYPE)));
+        log.info("Steal request created");
     }
 
     public void processSteal(UserInfo originUser, QueryDataDto query, TelegramBot bot) {
@@ -169,5 +171,10 @@ public class StealService {
                 .expires(LocalDateTime.now().plusHours(24))
                 .chatId(originUser.getChatId())
                 .build());
+    }
+
+    public int creditsSum(Long chatId) {
+        return userRepository.findByChatId(chatId).stream()
+                .mapToInt(UserEntity::getSocialCredit).sum();
     }
 }
