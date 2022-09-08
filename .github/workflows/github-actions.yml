@@ -31,4 +31,4 @@ jobs:
           script: |
             killall java
             source ~/.bash_profile
-            java -jar ~/bot/github/workspace/build/libs/bot-0.0.1-SNAPSHOT.jar &
+            java -jar ~/bot/github/workspace/build/libs/bot-0.0.1-SNAPSHOT.jar > /dev/null &
