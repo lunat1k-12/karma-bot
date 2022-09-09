@@ -1,0 +1,16 @@
+name: Build & deploy
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - run: ./gradlew clean build
+      - run: echo "Build Complete"
+      - name: List files in the repository
+        run: |
+          ls ${{ github.workspace }}/build/libs
