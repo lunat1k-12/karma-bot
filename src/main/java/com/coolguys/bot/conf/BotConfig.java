@@ -14,4 +14,9 @@ import org.springframework.stereotype.Component;
 public class BotConfig {
 
     private String token;
+    private String creditCommand;
+    private String autoReplyCommand;
+    private String removePlayBanCommand;
+    private String stealCommand;
+    private String buyGuardCommand;
 }

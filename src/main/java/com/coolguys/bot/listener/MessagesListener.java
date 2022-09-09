@@ -55,15 +55,6 @@ public class MessagesListener implements UpdatesListener {
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
-    private static final String CREDITS_COMMAND = "/credits@CoolGuys_Karma_bot";
-
-    private static final String AUTO_REPLY_COMMAND = "/auto_reply@CoolGuys_Karma_bot";
-
-    private static final String REMOVE_PLAY_BAN_COMMAND = "/remove_play_ban@CoolGuys_Karma_bot";
-
-    private static final String STEAL_COMMAND = "/steal@CoolGuys_Karma_bot";
-
-    private static final String BUY_GUARD_COMMAND = "/buy_guard@CoolGuys_Karma_bot";
 
     private final TelegramBot bot;
 
@@ -150,22 +141,22 @@ public class MessagesListener implements UpdatesListener {
         if (isValidForCreditsCount(message)) {
             log.info("Process karma update");
             karmaService.processKarmaUpdate(message, originUser, bot);
-        } else if (message.text() != null && CREDITS_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getCreditCommand().equals(message.text())) {
             log.info("Print Credits");
             printCredits(message);
-        } else if (message.text() != null && AUTO_REPLY_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getAutoReplyCommand().equals(message.text())) {
             log.info("Create auto-reply");
             orderService.createReplyOrder(originUser)
                     .ifPresent(bot::execute);
             bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
-        } else if (message.text() != null && REMOVE_PLAY_BAN_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getRemovePlayBanCommand().equals(message.text())) {
             log.info("remove play ban command");
             diceService.removePlayBan(originUser, bot);
-        } else if (message.text() != null && STEAL_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getStealCommand().equals(message.text())) {
             log.info("New steal command");
             stealService.stealRequest(originUser, bot);
             bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
-        } else if (message.text() != null && BUY_GUARD_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getBuyGuardCommand().equals(message.text())) {
             log.info("Buy guard request");
             guardService.buyGuard(originUser, bot);
         } else if (message.dice() != null) {

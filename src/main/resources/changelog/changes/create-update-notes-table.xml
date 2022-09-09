@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-    <changeSet id="revision-3" author="evgen.chemeris">
+    <changeSet id="revision-4" author="evgen.chemeris">
         <createTable tableName="update_note">
             <column name="id" type="INTEGER" autoIncrement="true">
                 <constraints primaryKey="true"/>
