@@ -203,7 +203,7 @@ public class MessagesListener implements UpdatesListener {
         log.info("Print Credits");
 
         bot.execute(new SendMessage(message.chat().id(),
-                "Credits:\n" +
+                "\uD83C\uDFE6 Credits:\n" +
                         msg +
                         "\n****************" +
                         "\nTotal Credits: " +
