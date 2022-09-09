@@ -1,4 +1,4 @@
-package com.coolguys.bot.listner;
+package com.coolguys.bot.listener;
 
 import com.coolguys.bot.conf.BotConfig;
 import com.coolguys.bot.dto.QueryDataDto;
