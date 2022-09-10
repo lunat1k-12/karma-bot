@@ -1,5 +1,6 @@
 package com.coolguys.bot.service;
 
+import com.coolguys.bot.dto.CasinoDto;
 import com.coolguys.bot.dto.Order;
 import com.coolguys.bot.dto.OrderType;
 import com.coolguys.bot.dto.QueryDataDto;
@@ -36,6 +37,7 @@ public class StealService {
     private final UserRepository userRepository;
     private final OrderMapper orderMapper;
     private final GuardService guardService;
+    private final CasinoService casinoService;
     public static final int PAUSE_MILLIS = 3000;
     public static final int STEAL_BORDER = 1000;
 
@@ -118,7 +120,7 @@ public class StealService {
                 bot.execute(new SendMessage(originUser.getChatId(), String.format("%s має охорону! %s спіймали." +
                         "Штраф %s і заборона на доступ до казино на 24 години!", targetUser.getUsername(), originUser.getUsername(), FEE)));
                 bot.execute(new SendSticker(originUser.getChatId(), POLICE_STICKER));
-                busted(originUser);
+                busted(originUser, bot);
                 return;
             }
 
@@ -150,7 +152,7 @@ public class StealService {
                         "заборона на доступ до казино на 24 години! Якщо в тебе була охорона, то її більше нема.",
                         originUser.getUsername(), FEE)));
                 bot.execute(new SendSticker(originUser.getChatId(), POLICE_STICKER));
-                busted(originUser);
+                busted(originUser, bot);
             }
 
         } catch (InterruptedException e) {
@@ -162,9 +164,25 @@ public class StealService {
         return !banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(user),
                 user.getChatId(), LocalDateTime.now()).isEmpty();
     }
-    private void busted(UserInfo originUser) {
+    private void busted(UserInfo originUser, TelegramBot bot) {
+        CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
+        if (originUser.getSocialCredit() < FEE && originUser.getId().equals(casino.getOwner().getId())) {
+            casinoService.dropCasinoOwner(originUser.getChatId());
+            bot.execute(new SendMessage(originUser.getChatId(),
+                    String.format("@%s ти більше не власник казино", originUser.getUsername())));
+        }
+
         originUser.minusCredit(FEE);
         userRepository.save(userMapper.toEntity(originUser));
+        guardService.deleteGuard(originUser);
+        banRecordRepository.save(BanRecordEntity.builder()
+                .user(userMapper.toEntity(originUser))
+                .expires(LocalDateTime.now().plusHours(24))
+                .chatId(originUser.getChatId())
+                .build());
+    }
+
+    public void sendToJail(UserInfo originUser) {
         guardService.deleteGuard(originUser);
         banRecordRepository.save(BanRecordEntity.builder()
                 .user(userMapper.toEntity(originUser))

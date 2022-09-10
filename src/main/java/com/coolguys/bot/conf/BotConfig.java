@@ -20,4 +20,5 @@ public class BotConfig {
     private String stealCommand;
     private String buyGuardCommand;
     private String buyCasinoCommand;
+    private String doDrugsCommand;
 }

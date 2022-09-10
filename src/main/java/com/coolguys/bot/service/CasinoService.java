@@ -47,6 +47,13 @@ public class CasinoService {
         log.info("Casino bought by {}", user.getUsername());
     }
 
+    public void dropCasinoOwner(Long chatId) {
+        CasinoDto casino = findOrCreateCasinoByChatID(chatId);
+        casino.setOwner(null);
+        casino.setCurrentPrice(INITIAL_CASINO_PRICE);
+        casinoRepository.save(casinoMapper.toEntity(casino));
+    }
+
     public CasinoDto findOrCreateCasinoByChatID(Long chatId) {
         return casinoRepository.findByChatId(chatId)
                 .map(casinoMapper::toDto)
