@@ -1,12 +1,14 @@
-package com.coolguys.bot.listner;
+package com.coolguys.bot.listener;
 
 import com.coolguys.bot.conf.BotConfig;
+import com.coolguys.bot.dto.CasinoDto;
 import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.entity.ChatEntity;
 import com.coolguys.bot.mapper.UserMapper;
 import com.coolguys.bot.repository.ChatRepository;
 import com.coolguys.bot.repository.UserRepository;
+import com.coolguys.bot.service.CasinoService;
 import com.coolguys.bot.service.DiceService;
 import com.coolguys.bot.service.GuardService;
 import com.coolguys.bot.service.KarmaService;
@@ -52,18 +54,10 @@ public class MessagesListener implements UpdatesListener {
     private final StealService stealService;
     private final GuardService guardService;
     private final BotConfig botConfig;
+    private final CasinoService casinoService;
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
-    private static final String CREDITS_COMMAND = "/credits@CoolGuys_Karma_bot";
-
-    private static final String AUTO_REPLY_COMMAND = "/auto_reply@CoolGuys_Karma_bot";
-
-    private static final String REMOVE_PLAY_BAN_COMMAND = "/remove_play_ban@CoolGuys_Karma_bot";
-
-    private static final String STEAL_COMMAND = "/steal@CoolGuys_Karma_bot";
-
-    private static final String BUY_GUARD_COMMAND = "/buy_guard@CoolGuys_Karma_bot";
 
     private final TelegramBot bot;
 
@@ -73,7 +67,7 @@ public class MessagesListener implements UpdatesListener {
                             DiceService diceService, KarmaService karmaService,
                             UserService userService, MessagesService messagesService,
                             StealService stealService, GuardService guardService,
-                            BotConfig botConfig) {
+                            BotConfig botConfig, CasinoService casinoService) {
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -85,6 +79,7 @@ public class MessagesListener implements UpdatesListener {
         this.stealService = stealService;
         this.guardService = guardService;
         this.botConfig = botConfig;
+        this.casinoService = casinoService;
         log.info("Bot Token: {}", botConfig.getToken());
         this.bot = new TelegramBot(botConfig.getToken());
         bot.setUpdatesListener(this);
@@ -150,24 +145,27 @@ public class MessagesListener implements UpdatesListener {
         if (isValidForCreditsCount(message)) {
             log.info("Process karma update");
             karmaService.processKarmaUpdate(message, originUser, bot);
-        } else if (message.text() != null && CREDITS_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getCreditCommand().equals(message.text())) {
             log.info("Print Credits");
             printCredits(message);
-        } else if (message.text() != null && AUTO_REPLY_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getAutoReplyCommand().equals(message.text())) {
             log.info("Create auto-reply");
             orderService.createReplyOrder(originUser)
                     .ifPresent(bot::execute);
             bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
-        } else if (message.text() != null && REMOVE_PLAY_BAN_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getRemovePlayBanCommand().equals(message.text())) {
             log.info("remove play ban command");
             diceService.removePlayBan(originUser, bot);
-        } else if (message.text() != null && STEAL_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getStealCommand().equals(message.text())) {
             log.info("New steal command");
             stealService.stealRequest(originUser, bot);
             bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
-        } else if (message.text() != null && BUY_GUARD_COMMAND.equals(message.text())) {
+        } else if (message.text() != null && botConfig.getBuyGuardCommand().equals(message.text())) {
             log.info("Buy guard request");
             guardService.buyGuard(originUser, bot);
+        } else if (message.text() != null && botConfig.getBuyCasinoCommand().equals(message.text())) {
+            log.info("Buy Casino request");
+            casinoService.buyCasino(originUser, bot);
         } else if (message.dice() != null) {
             log.info("Process dice");
             diceService.processDice(message, originUser, bot);
@@ -181,11 +179,12 @@ public class MessagesListener implements UpdatesListener {
     }
 
     private void printCredits(Message message) {
+        CasinoDto casino = casinoService.findOrCreateCasinoByChatID(message.chat().id());
         List<String> lines = userRepository.findByChatId(message.chat().id()).stream()
                 .map(userMapper::toDto)
                 .sorted(Comparator.comparingInt(UserInfo::getSocialCredit)
                         .reversed())
-                .map(this::toStringInfo)
+                .map(u -> toStringInfo(u, casino))
                 .collect(Collectors.toList());
 
         if (lines.size() >= 1) {
@@ -203,20 +202,24 @@ public class MessagesListener implements UpdatesListener {
         log.info("Print Credits");
 
         bot.execute(new SendMessage(message.chat().id(),
-                "\uD83C\uDFE6 Credits:\n" +
+                "\uD83C\uDFE6 Рахунки:\n" +
                         msg +
                         "\n****************" +
-                        "\nTotal Credits: " +
-                        stealService.creditsSum(message.chat().id())));
+                        "\nСумарний Банк: " +
+                        stealService.creditsSum(message.chat().id()) +
+                        "\nВартість казино: " + casino.getCurrentPrice()));
     }
 
-    private String toStringInfo(UserInfo user) {
+    private String toStringInfo(UserInfo user, CasinoDto casino) {
         StringBuilder sb = new StringBuilder(String.format("%s : %s ", user.getUsername(), user.getSocialCredit()));
         if (guardService.doesHaveGuard(user)) {
             sb.append("⚔️");
         }
         if (stealService.isInJail(user)) {
             sb.append("⛓");
+        }
+        if (casino.getOwner() != null && casino.getOwner().getId().equals(user.getId())) {
+            sb.append("\uD83C\uDFB0");
         }
         return sb.toString();
     }

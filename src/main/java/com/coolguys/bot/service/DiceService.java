@@ -1,5 +1,6 @@
 package com.coolguys.bot.service;
 
+import com.coolguys.bot.dto.CasinoDto;
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.entity.DiceRequestEntity;
 import com.coolguys.bot.mapper.UserMapper;
@@ -35,6 +36,7 @@ public class DiceService {
     private final UserMapper userMapper;
     private final UserRepository userRepository;
     private final BanRecordRepository banRecordRepository;
+    private final CasinoService casinoService;
 
     public void removePlayBan(UserInfo originUser, TelegramBot bot) {
         List<DiceRequestEntity> diceRequests = diceRequestRepository.findAllByUserAndChatIdAndDateGreaterThan(userMapper.toEntity(originUser),
@@ -65,12 +67,12 @@ public class DiceService {
 
         if (!banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(originUser),
                 originUser.getChatId(), LocalDateTime.now()).isEmpty()) {
-            bot.execute(new SendMessage(message.chat().id(), "Злочинцям не місце у казіно!."));
+            bot.execute(new SendMessage(message.chat().id(), "Злочинцям не місце у казино!."));
             return;
         }
 
         if ((originUser.getSocialCredit() - BET_PRICE) < MIN_BALANCE) {
-            bot.execute(new SendMessage(message.chat().id(), "Тобі не місце в цьому казіно жебрак."));
+            bot.execute(new SendMessage(message.chat().id(), "Тобі не місце в цьому казино жебрак."));
             return;
         }
 
@@ -89,6 +91,15 @@ public class DiceService {
             originUser.minusCredit(BET_PRICE);
             userRepository.save(userMapper.toEntity(originUser));
             bot.execute(new SendSticker(message.chat().id(), MINUS_STICKER_ID));
+            CasinoDto casino = casinoService.findOrCreateCasinoByChatID(message.chat().id());
+            if (casino.getOwner() != null) {
+                UserInfo casinoOwner = casino.getOwner();
+                Integer casinoPart = Double.valueOf(Math.floor(BET_PRICE/2d)).intValue();
+                casinoOwner.plusCredit(casinoPart);
+                userRepository.save(userMapper.toEntity(casinoOwner));
+                bot.execute(new SendMessage(message.chat().id(),
+                        String.format("%s кредитів відходять власнику казино", casinoPart)));
+            }
         }
         diceRequestRepository.save(DiceRequestEntity.builder()
                 .chatId(message.chat().id())

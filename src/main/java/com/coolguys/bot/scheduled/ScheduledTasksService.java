@@ -2,7 +2,7 @@ package com.coolguys.bot.scheduled;
 
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.entity.UserEntity;
-import com.coolguys.bot.listner.MessagesListener;
+import com.coolguys.bot.listener.MessagesListener;
 import com.coolguys.bot.mapper.ChatMessageMapper;
 import com.coolguys.bot.mapper.UserMapper;
 import com.coolguys.bot.repository.ChatMessageRepository;
