@@ -10,6 +10,7 @@ import com.coolguys.bot.repository.ChatRepository;
 import com.coolguys.bot.repository.UserRepository;
 import com.coolguys.bot.service.CasinoService;
 import com.coolguys.bot.service.DiceService;
+import com.coolguys.bot.service.DrugsService;
 import com.coolguys.bot.service.GuardService;
 import com.coolguys.bot.service.KarmaService;
 import com.coolguys.bot.service.MessagesService;
@@ -55,6 +56,7 @@ public class MessagesListener implements UpdatesListener {
     private final GuardService guardService;
     private final BotConfig botConfig;
     private final CasinoService casinoService;
+    private final DrugsService drugsService;
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
@@ -67,7 +69,8 @@ public class MessagesListener implements UpdatesListener {
                             DiceService diceService, KarmaService karmaService,
                             UserService userService, MessagesService messagesService,
                             StealService stealService, GuardService guardService,
-                            BotConfig botConfig, CasinoService casinoService) {
+                            BotConfig botConfig, CasinoService casinoService,
+                            DrugsService drugsService) {
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -80,6 +83,7 @@ public class MessagesListener implements UpdatesListener {
         this.guardService = guardService;
         this.botConfig = botConfig;
         this.casinoService = casinoService;
+        this.drugsService = drugsService;
         log.info("Bot Token: {}", botConfig.getToken());
         this.bot = new TelegramBot(botConfig.getToken());
         bot.setUpdatesListener(this);
@@ -166,6 +170,9 @@ public class MessagesListener implements UpdatesListener {
         } else if (message.text() != null && botConfig.getBuyCasinoCommand().equals(message.text())) {
             log.info("Buy Casino request");
             casinoService.buyCasino(originUser, bot);
+        } else if (message.text() != null && botConfig.getDoDrugsCommand().equals(message.text())) {
+            log.info("Do drugs request for {}", originUser.getUsername());
+            drugsService.doDrugs(originUser, bot);
         } else if (message.dice() != null) {
             log.info("Process dice");
             diceService.processDice(message, originUser, bot);
