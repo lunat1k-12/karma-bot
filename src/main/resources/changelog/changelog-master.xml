@@ -15,4 +15,5 @@
     <include file="/changelog/changes/create-ban-record-table.xml"/>
     <include file="/changelog/changes/create-guard-table.xml"/>
     <include file="/changelog/changes/create-update-notes-table.xml"/>
+    <include file="/changelog/changes/create-casino-table.xml"/>
 </databaseChangeLog>

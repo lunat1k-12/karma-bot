@@ -19,4 +19,5 @@ public class BotConfig {
     private String removePlayBanCommand;
     private String stealCommand;
     private String buyGuardCommand;
+    private String buyCasinoCommand;
 }
