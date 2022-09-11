@@ -9,19 +9,14 @@ import com.coolguys.bot.mapper.OrderMapper;
 import com.coolguys.bot.mapper.UserMapper;
 import com.coolguys.bot.repository.OrderRepository;
 import com.coolguys.bot.repository.UserRepository;
+import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.request.ParseMode;
-import com.pengrad.telegrambot.request.BaseRequest;
 import com.pengrad.telegrambot.request.DeleteMessage;
 import com.pengrad.telegrambot.request.SendMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.coolguys.bot.dto.ReplyOrderStage.DONE;
@@ -38,13 +33,15 @@ public class OrderService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final KeyboardService keyboardService;
+    private final TelegramBot bot;
 
     private static final Long DEFAULT_ITERATIONS = 10L;
     private static final Integer DEFAULT_PRICE = 50;
 
-    public Optional<SendMessage> createReplyOrder(UserInfo originUser) {
+    public void createReplyOrder(UserInfo originUser) {
         if (originUser.getSocialCredit() < DEFAULT_PRICE) {
-            return Optional.of(new SendMessage(originUser.getChatId(), "Підсобирай кредитів жебрак"));
+            bot.execute(new SendMessage(originUser.getChatId(), "Підсобирай кредитів жебрак"));
+            return;
         }
 
         Order newOrder = Order.builder()
@@ -59,37 +56,35 @@ public class OrderService {
         originUser.setSocialCredit(originUser.getSocialCredit() - DEFAULT_PRICE);
         userRepository.save(userMapper.toEntity(originUser));
         repository.save(orderMapper.toEntity(newOrder));
-        return Optional.of(new SendMessage(originUser.getChatId(), "Обери жертву:")
+        bot.execute(new SendMessage(originUser.getChatId(), "Обери жертву:")
                 .parseMode(ParseMode.HTML)
                 .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(originUser.getChatId(), originUser.getId(),
                         QueryDataDto.REPLY_ORDER_TYPE)));
     }
 
-    public List<Optional<BaseRequest>> checkOrders(Long chatId, UserInfo originUser,
+    public void checkOrders(Long chatId, UserInfo originUser,
                                                    String messageText, Integer messageId, Income source) {
-        return getActiveOrders(chatId)
-                .flatMap(order -> processReplyOrder(order, originUser, messageText, messageId, source).stream())
-                .filter(Optional::isPresent)
-                .collect(Collectors.toList());
+        getActiveOrders(chatId)
+                .forEach(order -> processReplyOrder(order, originUser, messageText, messageId, source));
     }
 
-    private List<Optional<BaseRequest>> processReplyOrder(Order order, UserInfo sender, String messageText, Integer messageId, Income source) {
+    private void processReplyOrder(Order order, UserInfo sender, String messageText, Integer messageId, Income source) {
         switch(order.getStage()) {
             case TARGET_REQUIRED:
-                return List.of(processReplyTarget(order, messageText, sender, source));
+                processReplyTarget(order, messageText, sender, source);
+                break;
             case MESSAGE_REQUIRED:
-                return processReplyMessage(order, messageText, sender, messageId, source);
+                processReplyMessage(order, messageText, sender, messageId, source);
+                break;
             case IN_PROGRESS:
-                return List.of(processInProgressMessage(order, sender, messageId, source));
+                processInProgressMessage(order, sender, messageId, source);
+                break;
         }
-
-        log.info("unknown Order stage - {}", order.getStage());
-        return Collections.emptyList();
     }
 
-    private Optional<BaseRequest> processInProgressMessage(Order order, UserInfo targetUser, Integer messageId, Income source) {
+    private void processInProgressMessage(Order order, UserInfo targetUser, Integer messageId, Income source) {
         if (!order.getTargetUser().getId().equals(targetUser.getId()) || Income.DATA.equals(source)) {
-            return Optional.empty();
+            return;
         }
 
         order.setCurrentIteration(order.getCurrentIteration() + 1);
@@ -97,65 +92,67 @@ public class OrderService {
             order.setStage(DONE);
         }
         repository.save(orderMapper.toEntity(order));
-        return Optional.of(new SendMessage(order.getChatId(), order.getRespondMessage())
+        bot.execute(new SendMessage(order.getChatId(), order.getRespondMessage())
                 .replyToMessageId(messageId));
     }
-    private List<Optional<BaseRequest>> processReplyMessage(Order order, String messageText, UserInfo originUser, Integer messageId, Income source) {
-        List<Optional<BaseRequest>> result = new ArrayList<>();
+    private void processReplyMessage(Order order, String messageText, UserInfo originUser, Integer messageId, Income source) {
         if (!order.getOriginUserId().equals(originUser.getId()) || Income.DATA.equals(source)) {
-            return result;
+            return;
         }
 
         order.setRespondMessage(messageText);
         order.setStage(IN_PROGRESS);
 
         repository.save(orderMapper.toEntity(order));
-        result.add(Optional.of(new SendMessage(order.getChatId(), "Відповідь встановленно")));
-        result.add(Optional.of(new DeleteMessage(order.getChatId(), messageId)));
-        return result;
+        bot.execute(new SendMessage(order.getChatId(), "Відповідь встановленно"));
+        bot.execute(new DeleteMessage(order.getChatId(), messageId));
     }
 
-    private Optional<BaseRequest> processReplyTarget(Order order, String messageText, UserInfo originUser, Income source) {
+    private void processReplyTarget(Order order, String messageText, UserInfo originUser, Income source) {
 
         if (!order.getOriginUserId().equals(originUser.getId())) {
-            return Optional.empty();
+            return;
         }
 
         if (Income.TEXT.equals(source)) {
-            return Optional.of(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
+            bot.execute(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
                     .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(order.getChatId(), originUser.getId(),
                             QueryDataDto.REPLY_ORDER_TYPE)));
+            return;
         }
 
-        Long targetId = null;
-        UserInfo targetUser = null;
+        Long targetId;
+        UserInfo targetUser;
         try {
             targetId = Long.valueOf(messageText);
             if (targetId.equals(0L)) {
                 repository.deleteById(order.getId());
                 originUser.plusCredit(DEFAULT_PRICE);
                 userRepository.save(userMapper.toEntity(originUser));
-                return Optional.of(new SendMessage(order.getChatId(), "Замовлення скасовано"));
+                bot.execute(new SendMessage(order.getChatId(), "Замовлення скасовано"));
+                return;
             }
             targetUser = userRepository.findById(targetId)
                     .map(userMapper::toDto)
                     .orElse(null);
             if (targetUser == null || targetUser.getId().equals(originUser.getId())) {
-                return Optional.of(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
+                bot.execute(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
                         .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(order.getChatId(), originUser.getId(),
                                 QueryDataDto.REPLY_ORDER_TYPE)));
+                return;
             }
         } catch (NumberFormatException ex) {
             log.info("Invalid id: {}", messageText);
-            return Optional.of(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
+            bot.execute(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
                     .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(order.getChatId(), originUser.getId(),
                             QueryDataDto.REPLY_ORDER_TYPE)));
+            return;
         }
 
         order.setTargetUser(targetUser);
         order.setStage(MESSAGE_REQUIRED);
         repository.save(orderMapper.toEntity(order));
-        return Optional.of(new SendMessage(order.getChatId(), "Ок, тепер напиши який текст ти хочеш встановити на автовідповідь"));
+        bot.execute(new SendMessage(order.getChatId(), "Ок, тепер напиши який текст ти хочеш встановити на автовідповідь"));
     }
     private Stream<Order> getActiveOrders(Long chatId) {
         return repository.findAllByChatIdAndStageIsNot(chatId, ReplyOrderStage.DONE.getId())
@@ -165,6 +162,6 @@ public class OrderService {
     }
 
     public enum Income {
-        TEXT, DATA;
+        TEXT, DATA
     }
 }

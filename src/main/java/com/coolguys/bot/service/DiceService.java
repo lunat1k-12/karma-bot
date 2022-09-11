@@ -37,8 +37,9 @@ public class DiceService {
     private final UserRepository userRepository;
     private final BanRecordRepository banRecordRepository;
     private final CasinoService casinoService;
+    private final TelegramBot bot;
 
-    public void removePlayBan(UserInfo originUser, TelegramBot bot) {
+    public void removePlayBan(UserInfo originUser) {
         List<DiceRequestEntity> diceRequests = diceRequestRepository.findAllByUserAndChatIdAndDateGreaterThan(userMapper.toEntity(originUser),
                 originUser.getChatId(),
                 LocalDateTime.now().minusHours(1L));
@@ -56,7 +57,7 @@ public class DiceService {
         userRepository.save(userMapper.toEntity(originUser));
         bot.execute(new SendMessage(originUser.getChatId(), String.format("@%s можеш грати знову", originUser.getUsername())));
     }
-    public void processDice(Message message, UserInfo originUser, TelegramBot bot) {
+    public void processDice(Message message, UserInfo originUser) {
 
         if (diceRequestRepository.findAllByUserAndChatIdAndDateGreaterThan(userMapper.toEntity(originUser),
                 message.chat().id(),

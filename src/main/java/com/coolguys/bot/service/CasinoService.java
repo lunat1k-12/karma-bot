@@ -23,11 +23,12 @@ public class CasinoService {
     private final CasinoMapper casinoMapper;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final TelegramBot bot;
     private static final Integer INITIAL_CASINO_PRICE = 600;
     private static final Integer CASINO_PRICE_STEP = 100;
     private static final String MONEY_STICKER = "CAACAgIAAxkBAAIC-GMcXOr50dUY-IjO4W9Ry5Taq8fqAAIrDAACIjBYS8hE4ljSp2EUKQQ";
 
-    public void buyCasino(UserInfo user, TelegramBot bot) {
+    public void buyCasino(UserInfo user) {
         CasinoDto casino = findOrCreateCasinoByChatID(user.getChatId());
 
         if (user.getSocialCredit() < casino.getCurrentPrice()) {

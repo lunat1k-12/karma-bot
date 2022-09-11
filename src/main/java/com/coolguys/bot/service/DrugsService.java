@@ -25,10 +25,11 @@ public class DrugsService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final StealService stealService;
+    private final TelegramBot bot;
 
     private static final Integer DRUGS_INCOME = 200;
 
-    public void doDrugs(UserInfo user, TelegramBot bot) {
+    public void doDrugs(UserInfo user) {
         if (findActiveDrugDeals(user).size() > 0) {
             bot.execute(new SendMessage(user.getChatId(), "Тобі треба залягти на дно"));
             return;
