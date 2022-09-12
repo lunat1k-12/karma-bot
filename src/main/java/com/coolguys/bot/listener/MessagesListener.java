@@ -146,7 +146,12 @@ public class MessagesListener implements UpdatesListener {
     private void processMessage(Message message) {
         log.info("proces message");
         UserInfo originUser = userService.loadUser(message);
-        if (isValidForCreditsCount(message)) {
+        if (message.leftChatMember() != null) {
+            log.info("Remove user");
+            String username = userService.getOriginUsername(message.leftChatMember());
+            userRepository.findByUsernameAndChatId(username, message.chat().id())
+                    .ifPresent(userRepository::delete);
+        } else if (isValidForCreditsCount(message)) {
             log.info("Process karma update");
             karmaService.processKarmaUpdate(message, originUser);
         } else if (message.text() != null && botConfig.getCreditCommand().equals(message.text())) {
