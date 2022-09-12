@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.coolguys.bot.dto.QueryDataDto.DROP_DRUGS_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.REPLY_ORDER_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.STEAL_TYPE;
 
@@ -121,7 +122,11 @@ public class MessagesListener implements UpdatesListener {
                         break;
                     case STEAL_TYPE:
                         log.info("Steal query");
-                        stealService.processSteal(originUser, dto);
+                        stealService.processPerChatAsyncSteal(originUser, dto);
+                        break;
+                    case DROP_DRUGS_TYPE:
+                        log.info("Drop drugs query");
+                        drugsService.processDropDrug(originUser, dto);
                         break;
                 }
             }
@@ -178,6 +183,9 @@ public class MessagesListener implements UpdatesListener {
         } else if (message.text() != null && botConfig.getDoDrugsCommand().equals(message.text())) {
             log.info("Do drugs request for {}", originUser.getUsername());
             drugsService.doDrugs(originUser);
+        } else if (message.text() != null && botConfig.getDropDrugsCommand().equals(message.text())) {
+            log.info("Drop drugs request from {}", originUser.getUsername());
+            drugsService.dropDrugsRequest(originUser);
         } else if (message.dice() != null) {
             log.info("Process dice");
             diceService.processDice(message, originUser);
@@ -239,10 +247,12 @@ public class MessagesListener implements UpdatesListener {
 
     private void updateChatMember(ChatMemberUpdated chat) {
         log.info("Process new chat");
-        chatRepository.save(ChatEntity.builder()
-                .name(chat.chat().title())
-                .telegramId(chat.chat().id())
-                .build());
+
+        chatRepository.findByTelegramId(chat.chat().id())
+                .orElseGet(() -> chatRepository.save(ChatEntity.builder()
+                        .name(chat.chat().title())
+                        .telegramId(chat.chat().id())
+                        .build()));
 
         bot.execute(new SendMessage(chat.chat().id(), "Привіт хлопці"));
     }

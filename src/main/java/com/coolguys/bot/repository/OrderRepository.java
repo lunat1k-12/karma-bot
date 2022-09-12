@@ -8,7 +8,9 @@ import java.util.List;
 
 @Repository
 public interface OrderRepository extends CrudRepository<OrderEntity, Long> {
+    List<OrderEntity> findAllByChatIdAndTypeAndStageIsNot(Long chatId, String type, String stage);
 
-    List<OrderEntity> findAllByChatIdAndStageIsNot(Long chatId, String stage);
-    List<OrderEntity> findAllByChatIdAndStageAndOriginUserId(Long chatId, String stage, Long originUserId);
+    List<OrderEntity> findAllByChatIdAndStageAndOriginUserIdAndType(Long chatId, String stage, Long originUserId, String type);
+
+    List<OrderEntity> findAllByChatIdAndOriginUserIdAndType(Long chatId, Long originUserId, String type);
 }

@@ -53,7 +53,7 @@ public class OrderService {
                 .currentIteration(0L)
                 .build();
 
-        originUser.setSocialCredit(originUser.getSocialCredit() - DEFAULT_PRICE);
+        originUser.minusCredit(DEFAULT_PRICE);
         userRepository.save(userMapper.toEntity(originUser));
         repository.save(orderMapper.toEntity(newOrder));
         bot.execute(new SendMessage(originUser.getChatId(), "Обери жертву:")
@@ -155,10 +155,9 @@ public class OrderService {
         bot.execute(new SendMessage(order.getChatId(), "Ок, тепер напиши який текст ти хочеш встановити на автовідповідь"));
     }
     private Stream<Order> getActiveOrders(Long chatId) {
-        return repository.findAllByChatIdAndStageIsNot(chatId, ReplyOrderStage.DONE.getId())
+        return repository.findAllByChatIdAndTypeAndStageIsNot(chatId, OrderType.MESSAGE_REPLY.getId(), ReplyOrderStage.DONE.getId())
                 .stream()
-                .map(orderMapper::toDto)
-                .filter(o -> OrderType.MESSAGE_REPLY.equals(o.getType()));
+                .map(orderMapper::toDto);
     }
 
     public enum Income {
