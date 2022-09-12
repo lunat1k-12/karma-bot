@@ -195,15 +195,20 @@ public class StealService {
     private void busted(UserInfo originUser) {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
         PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(originUser.getChatId());
-        if (originUser.getSocialCredit() < FEE && originUser.getId().equals(casino.getOwner().getId())) {
-            casinoService.dropCasinoOwner(originUser.getChatId());
-            bot.execute(new SendMessage(originUser.getChatId(),
-                    String.format("@%s ти більше не власник казино", originUser.getUsername())));
-        }
-        if (originUser.getSocialCredit() < FEE && originUser.getId().equals(pd.getOwner().getId())) {
-            policeDepartmentService.dropPdOwner(originUser.getChatId());
-            bot.execute(new SendMessage(originUser.getChatId(),
-                    String.format("@%s ти більше не власник поліцейської ділянки", originUser.getUsername())));
+
+        if (originUser.getSocialCredit() < FEE) {
+            if (casino.getOwner() != null && originUser.getId().equals(casino.getOwner().getId())) {
+                casinoService.dropCasinoOwner(originUser.getChatId());
+                bot.execute(new SendMessage(originUser.getChatId(),
+                        String.format("@%s ти більше не власник казино", originUser.getUsername())));
+                log.info("Casino owner removed");
+            }
+            if (pd.getOwner() != null && originUser.getId().equals(pd.getOwner().getId())) {
+                policeDepartmentService.dropPdOwner(originUser.getChatId());
+                bot.execute(new SendMessage(originUser.getChatId(),
+                        String.format("@%s ти більше не власник поліцейської ділянки", originUser.getUsername())));
+                log.info("PD owner removed");
+            }
         }
 
         policeDepartmentService.processFine(originUser, FEE);
