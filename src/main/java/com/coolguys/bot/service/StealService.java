@@ -41,6 +41,8 @@ public class StealService {
     public static final int PAUSE_MILLIS = 3000;
     public static final int STEAL_BORDER = 1000;
 
+    private static final int JAIL_TIME = 6;
+
     public static final String POLICE_STICKER = "CAACAgIAAxkBAAICjmMWTBExj7-WpA_pWEKOaWmaaK71AALkBwACRvusBOq-PekdJ3n1KQQ";
     public static final int FEE = 100;
 
@@ -116,22 +118,19 @@ public class StealService {
                 return;
             }
 
-            if (guardService.doesHaveGuard(targetUser)) {
-                bot.execute(new SendMessage(originUser.getChatId(), String.format("%s має охорону! %s спіймали." +
-                        "Штраф %s і заборона на доступ до казино на 24 години!", targetUser.getUsername(), originUser.getUsername(), FEE)));
-                bot.execute(new SendSticker(originUser.getChatId(), POLICE_STICKER));
-                busted(originUser, bot);
-                return;
-            }
-
             bot.execute(new SendMessage(originUser.getChatId(),
                     String.format("Невідомий намагається вкрасти у @%s", targetUser.getUsername())));
 
 
-
             Thread.sleep(PAUSE_MILLIS);
             Random random = new Random();
-            int difficulty = random.nextInt(6);
+            int difficulty = random.nextInt(3) + 1;
+
+            boolean hasGuard = guardService.doesHaveGuard(targetUser);
+            if (hasGuard) {
+                bot.execute(new SendMessage(originUser.getChatId(), String.format("@%s має охорону!", targetUser.getUsername())));
+                difficulty = 5;
+            }
 
             bot.execute(new SendMessage(originUser.getChatId(), String.format("Складність крадіжки: %s", difficulty)));
             Thread.sleep(PAUSE_MILLIS);
@@ -140,7 +139,17 @@ public class StealService {
                     .emoji("\uD83C\uDFB2"));
             Thread.sleep(PAUSE_MILLIS);
             if (response.message().dice().value() >= difficulty) {
-                int price = random.nextInt(targetUser.getSocialCredit());
+                int half = Double.valueOf(Math.floor(targetUser.getSocialCredit() / 2d)).intValue();
+                int price;
+
+                if (hasGuard) {
+                    do {
+                        price = random.nextInt(targetUser.getSocialCredit());
+                    } while (price < half);
+                } else {
+                    price = random.nextInt(targetUser.getSocialCredit());
+                }
+
                 bot.execute(new SendMessage(originUser.getChatId(), String.format("Невідомий крадій успішно вкрав %s кредитів у @%s",
                         price, targetUser.getUsername())));
                 targetUser.minusCredit(price);
@@ -149,7 +158,7 @@ public class StealService {
                 userRepository.save(userMapper.toEntity(originUser));
             } else {
                 bot.execute(new SendMessage(originUser.getChatId(), String.format("Невдача! @%s спіймали за руку. Штраф %s і " +
-                        "заборона на доступ до казино на 24 години! Якщо в тебе була охорона, то її більше нема.",
+                        "заборона на доступ до казино на 6 годин! Якщо в тебе була охорона, то її більше нема.",
                         originUser.getUsername(), FEE)));
                 bot.execute(new SendSticker(originUser.getChatId(), POLICE_STICKER));
                 busted(originUser, bot);
@@ -177,7 +186,7 @@ public class StealService {
         guardService.deleteGuard(originUser);
         banRecordRepository.save(BanRecordEntity.builder()
                 .user(userMapper.toEntity(originUser))
-                .expires(LocalDateTime.now().plusHours(24))
+                .expires(LocalDateTime.now().plusHours(JAIL_TIME))
                 .chatId(originUser.getChatId())
                 .build());
     }
@@ -186,7 +195,7 @@ public class StealService {
         guardService.deleteGuard(originUser);
         banRecordRepository.save(BanRecordEntity.builder()
                 .user(userMapper.toEntity(originUser))
-                .expires(LocalDateTime.now().plusHours(24))
+                .expires(LocalDateTime.now().plusHours(JAIL_TIME))
                 .chatId(originUser.getChatId())
                 .build());
     }

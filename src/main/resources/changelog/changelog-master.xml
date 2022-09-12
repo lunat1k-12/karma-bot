@@ -17,4 +17,5 @@
     <include file="/changelog/changes/create-update-notes-table.xml"/>
     <include file="/changelog/changes/create-casino-table.xml"/>
     <include file="/changelog/changes/create-drug-action-table.xml"/>
+    <include file="/changelog/changes/insert-update-note.xml"/>
 </databaseChangeLog>
