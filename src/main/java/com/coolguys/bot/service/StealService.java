@@ -3,6 +3,7 @@ package com.coolguys.bot.service;
 import com.coolguys.bot.dto.CasinoDto;
 import com.coolguys.bot.dto.Order;
 import com.coolguys.bot.dto.OrderType;
+import com.coolguys.bot.dto.PoliceDepartmentDto;
 import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.ReplyOrderStage;
 import com.coolguys.bot.dto.UserInfo;
@@ -43,6 +44,7 @@ public class StealService {
     private final GuardService guardService;
     private final CasinoService casinoService;
     private final TelegramBot bot;
+    private final PoliceDepartmentService policeDepartmentService;
 
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
     public static final int PAUSE_MILLIS = 3000;
@@ -192,14 +194,19 @@ public class StealService {
     }
     private void busted(UserInfo originUser) {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
+        PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(originUser.getChatId());
         if (originUser.getSocialCredit() < FEE && originUser.getId().equals(casino.getOwner().getId())) {
             casinoService.dropCasinoOwner(originUser.getChatId());
             bot.execute(new SendMessage(originUser.getChatId(),
                     String.format("@%s ти більше не власник казино", originUser.getUsername())));
         }
+        if (originUser.getSocialCredit() < FEE && originUser.getId().equals(pd.getOwner().getId())) {
+            policeDepartmentService.dropPdOwner(originUser.getChatId());
+            bot.execute(new SendMessage(originUser.getChatId(),
+                    String.format("@%s ти більше не власник поліцейської ділянки", originUser.getUsername())));
+        }
 
-        originUser.minusCredit(FEE);
-        userRepository.save(userMapper.toEntity(originUser));
+        policeDepartmentService.processFine(originUser, FEE);
         guardService.deleteGuard(originUser);
         banRecordRepository.save(BanRecordEntity.builder()
                 .user(userMapper.toEntity(originUser))

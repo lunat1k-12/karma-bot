@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="revision-1" author="evgen.chemeris">
+        <insert tableName="update_note">
+            <column name="status" value="waiting"/>
+            <column name="message">
+                <![CDATA[Тепер є можливість купляти поліцейську ділянку.
+- Власник буде отримувати 50% всіх штрафів.
+- Одночасно може бути тільки один власник
+- Якщо перед придбанням ти мав казино - казино буде повернути на ринок за бозовою ціною. Те саме при покупці казино.
+- Якщо грошей на погашення штрафу за наркотики буде не вистачати - поліцеський майданчик буде конфісковано]]>
+            </column>
+        </insert>
+    </changeSet>
+</databaseChangeLog>
