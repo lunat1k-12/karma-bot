@@ -28,18 +28,18 @@ public class CasinoService {
     private static final Integer CASINO_PRICE_STEP = 100;
     private static final String MONEY_STICKER = "CAACAgIAAxkBAAIC-GMcXOr50dUY-IjO4W9Ry5Taq8fqAAIrDAACIjBYS8hE4ljSp2EUKQQ";
 
-    public void buyCasino(UserInfo user) {
+    public boolean buyCasino(UserInfo user) {
         CasinoDto casino = findOrCreateCasinoByChatID(user.getChatId());
 
         if (user.getSocialCredit() < casino.getCurrentPrice()) {
             bot.execute(new SendMessage(user.getChatId(),
                     String.format("За ці копійки казино не купиш. Актуальна ціна - %s", casino.getCurrentPrice())));
-            return;
+            return false;
         }
 
         if (casino.getOwner() != null && casino.getOwner().getId().equals(user.getId())) {
             bot.execute(new SendMessage(user.getChatId(), "Казино вже твоє!"));
-            return;
+            return false;
         }
 
         user.minusCredit(casino.getCurrentPrice());
@@ -51,6 +51,7 @@ public class CasinoService {
                 String.format("@%s тепер новий властник казино!", user.getUsername())));
         bot.execute(new SendSticker(user.getChatId(), MONEY_STICKER));
         log.info("Casino bought by {}", user.getUsername());
+        return true;
     }
 
     public void dropCasinoOwner(Long chatId) {

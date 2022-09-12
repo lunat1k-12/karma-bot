@@ -2,6 +2,7 @@ package com.coolguys.bot.listener;
 
 import com.coolguys.bot.conf.BotConfig;
 import com.coolguys.bot.dto.CasinoDto;
+import com.coolguys.bot.dto.PoliceDepartmentDto;
 import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.entity.ChatEntity;
@@ -15,6 +16,7 @@ import com.coolguys.bot.service.GuardService;
 import com.coolguys.bot.service.KarmaService;
 import com.coolguys.bot.service.MessagesService;
 import com.coolguys.bot.service.OrderService;
+import com.coolguys.bot.service.PoliceDepartmentService;
 import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.UserService;
 import com.google.gson.Gson;
@@ -58,6 +60,7 @@ public class MessagesListener implements UpdatesListener {
     private final BotConfig botConfig;
     private final CasinoService casinoService;
     private final DrugsService drugsService;
+    private final PoliceDepartmentService policeDepartmentService;
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
@@ -71,7 +74,8 @@ public class MessagesListener implements UpdatesListener {
                             UserService userService, MessagesService messagesService,
                             StealService stealService, GuardService guardService,
                             BotConfig botConfig, CasinoService casinoService,
-                            DrugsService drugsService, TelegramBot bot) {
+                            DrugsService drugsService, TelegramBot bot,
+                            PoliceDepartmentService policeDepartmentService) {
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -86,6 +90,7 @@ public class MessagesListener implements UpdatesListener {
         this.casinoService = casinoService;
         this.drugsService = drugsService;
         this.bot = bot;
+        this.policeDepartmentService = policeDepartmentService;
         log.info("Bot Token: {}", botConfig.getToken());
         bot.setUpdatesListener(this);
     }
@@ -179,13 +184,16 @@ public class MessagesListener implements UpdatesListener {
             guardService.buyGuard(originUser);
         } else if (message.text() != null && botConfig.getBuyCasinoCommand().equals(message.text())) {
             log.info("Buy Casino request");
-            casinoService.buyCasino(originUser);
+            processCasinoBuy(originUser);
         } else if (message.text() != null && botConfig.getDoDrugsCommand().equals(message.text())) {
             log.info("Do drugs request for {}", originUser.getUsername());
             drugsService.doDrugs(originUser);
         } else if (message.text() != null && botConfig.getDropDrugsCommand().equals(message.text())) {
             log.info("Drop drugs request from {}", originUser.getUsername());
             drugsService.dropDrugsRequest(originUser);
+        } else if (message.text() != null && botConfig.getBuyPoliceCommand().equals(message.text())) {
+            log.info("Buy police department request");
+            processPdBuy(originUser);
         } else if (message.dice() != null) {
             log.info("Process dice");
             diceService.processDice(message, originUser);
@@ -198,14 +206,37 @@ public class MessagesListener implements UpdatesListener {
 
     }
 
+    private void processCasinoBuy(UserInfo originUser) {
+        if (casinoService.buyCasino(originUser)) {
+            PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(originUser.getChatId());
+            if (pd.getOwner() != null && pd.getOwner().getId().equals(originUser.getId())) {
+                policeDepartmentService.dropPdOwner(originUser.getChatId());
+                bot.execute(new SendMessage(originUser.getChatId(),
+                        String.format("@%s більше не властник поліцейської ділянки", originUser.getUsername())));
+            }
+        }
+    }
+
+    private void processPdBuy(UserInfo originUser) {
+        if (policeDepartmentService.buyPoliceDepartment(originUser)) {
+            CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
+            if (casino.getOwner() != null && casino.getOwner().getId().equals(originUser.getId())) {
+                casinoService.dropCasinoOwner(originUser.getChatId());
+                bot.execute(new SendMessage(originUser.getChatId(),
+                        String.format("@%s більше не властник казино", originUser.getUsername())));
+            }
+        }
+    }
+
     private void printCredits(Message message) {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(message.chat().id());
+        PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(message.chat().id());
         List<String> lines = userRepository.findByChatId(message.chat().id()).stream()
                 .map(userMapper::toDto)
                 .filter(UserInfo::isActive)
                 .sorted(Comparator.comparingInt(UserInfo::getSocialCredit)
                         .reversed())
-                .map(u -> toStringInfo(u, casino))
+                .map(u -> toStringInfo(u, casino, pd))
                 .collect(Collectors.toList());
 
         if (lines.size() >= 1) {
@@ -228,10 +259,11 @@ public class MessagesListener implements UpdatesListener {
                         "\n****************" +
                         "\nСумарний Банк: " +
                         stealService.creditsSum(message.chat().id()) +
-                        "\nВартість казино: " + casino.getCurrentPrice()));
+                        "\nВартість казино: " + casino.getCurrentPrice() +
+                        "\nВартість поліції: " + pd.getCurrentPrice()));
     }
 
-    private String toStringInfo(UserInfo user, CasinoDto casino) {
+    private String toStringInfo(UserInfo user, CasinoDto casino, PoliceDepartmentDto pd) {
         StringBuilder sb = new StringBuilder(String.format("%s : %s ", user.getUsername(), user.getSocialCredit()));
         if (guardService.doesHaveGuard(user)) {
             sb.append("⚔️");
@@ -241,6 +273,9 @@ public class MessagesListener implements UpdatesListener {
         }
         if (casino.getOwner() != null && casino.getOwner().getId().equals(user.getId())) {
             sb.append("\uD83C\uDFB0");
+        }
+        if (pd.getOwner() != null && pd.getOwner().getId().equals(user.getId())) {
+            sb.append("\uD83D\uDE94");
         }
         return sb.toString();
     }

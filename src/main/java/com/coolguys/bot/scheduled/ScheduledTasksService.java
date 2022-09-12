@@ -1,6 +1,7 @@
 package com.coolguys.bot.scheduled;
 
 import com.coolguys.bot.dto.CasinoDto;
+import com.coolguys.bot.dto.PoliceDepartmentDto;
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.entity.UserEntity;
 import com.coolguys.bot.listener.MessagesListener;
@@ -10,6 +11,7 @@ import com.coolguys.bot.repository.ChatMessageRepository;
 import com.coolguys.bot.repository.UserRepository;
 import com.coolguys.bot.service.CasinoService;
 import com.coolguys.bot.service.DrugsService;
+import com.coolguys.bot.service.PoliceDepartmentService;
 import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +52,7 @@ public class ScheduledTasksService {
     private final CasinoService casinoService;
     private final StealService stealService;
     private final UserService userService;
+    private final PoliceDepartmentService policeDepartmentService;
 
     private static final String TOP_STICKER = "CAACAgIAAxkBAAIBTGMQ3leswu0305mH8dYR1BByXz_dAAJmAQACPQ3oBOMh-z8iW4cZKQQ";
 
@@ -87,26 +90,31 @@ public class ScheduledTasksService {
                 drugsService.discardDrugDeals(userToCheck);
 
                 CasinoDto casino = casinoService.findOrCreateCasinoByChatID(chatId);
+                PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(chatId);
                 if (userToCheck.getSocialCredit() >= DRUGS_FINE) {
-                    userToCheck.minusCredit(DRUGS_FINE);
-                    userRepository.save(userMapper.toEntity(userToCheck));
                     messagesListener.sendMessage(chatId, String.format("@%s оштрафовано на %s кредитів",
                             userToCheck.getUsername(), DRUGS_FINE));
+                    policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 } else if (casino.getOwner() != null && userToCheck.getId().equals(casino.getOwner().getId())) {
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
                                     "@%s втрачає казино", userToCheck.getUsername()));
-                    userToCheck.minusCredit(DRUGS_FINE);
-                    userRepository.save(userMapper.toEntity(userToCheck));
+                    policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     casinoService.dropCasinoOwner(chatId);
+                    messagesListener.sendSticker(chatId, POLICE_STICKER);
+                } else if (pd.getOwner() != null && userToCheck.getId().equals(pd.getOwner().getId())) {
+                    messagesListener.sendMessage(chatId,
+                            String.format("Коштів не вистачає для покриття штрафу.\n" +
+                                    "@%s втрачає поліцейську ділянку", userToCheck.getUsername()));
+                    policeDepartmentService.dropPdOwner(chatId);
+                    policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 } else {
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
                                     "@%s потрапив у в'язницю", userToCheck.getUsername()));
-                    userToCheck.minusCredit(DRUGS_FINE);
-                    userRepository.save(userMapper.toEntity(userToCheck));
+                    policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     stealService.sendToJail(userToCheck);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 }
