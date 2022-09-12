@@ -1,6 +1,7 @@
 package com.coolguys.bot.service;
 
 import com.coolguys.bot.dto.UserInfo;
+import com.coolguys.bot.dto.UserStatus;
 import com.coolguys.bot.entity.UserEntity;
 import com.coolguys.bot.mapper.UserMapper;
 import com.coolguys.bot.repository.UserRepository;
@@ -10,7 +11,9 @@ import com.pengrad.telegrambot.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +22,10 @@ public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
 
+    public void deactivateUser(UserInfo user) {
+        user.setStatus(UserStatus.INACTIVE);
+        userRepository.save(userMapper.toEntity(user));
+    }
     public void save(UserInfo user) {
         userRepository.save(userMapper.toEntity(user));
     }
@@ -44,9 +51,22 @@ public class UserService {
                         .username(username)
                         .socialCredit(0)
                         .telegramId(message.from().id())
+                        .status(UserStatus.ACTIVE.getId())
                         .build()));
 
+        if (UserStatus.INACTIVE.getId().equals(entity.getStatus())) {
+            entity.setStatus(UserStatus.ACTIVE.getId());
+            entity = userRepository.save(entity);
+        }
+
         return userMapper.toDto(entity);
+    }
+
+    public List<UserInfo> findActiveByChatId(Long chatId) {
+        return userRepository.findByChatId(chatId).stream()
+                .map(userMapper::toDto)
+                .filter(UserInfo::isActive)
+                .collect(Collectors.toList());
     }
 
     public String getOriginUsername(Message message) {

@@ -4,11 +4,9 @@ import com.coolguys.bot.entity.ChatEntity;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 
-import javax.transaction.Transactional;
+import java.util.Optional;
 
 @Repository
 public interface ChatRepository extends CrudRepository<ChatEntity, Long> {
-
-    @Transactional
-    void deleteByTelegramId(Long telegramId);
+    Optional<ChatEntity> findByTelegramId(Long telegramId);
 }

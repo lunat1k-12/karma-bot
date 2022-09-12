@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static com.coolguys.bot.dto.QueryDataDto.DROP_DRUGS_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.REPLY_ORDER_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.STEAL_TYPE;
 
@@ -70,7 +71,7 @@ public class MessagesListener implements UpdatesListener {
                             UserService userService, MessagesService messagesService,
                             StealService stealService, GuardService guardService,
                             BotConfig botConfig, CasinoService casinoService,
-                            DrugsService drugsService) {
+                            DrugsService drugsService, TelegramBot bot) {
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -84,8 +85,8 @@ public class MessagesListener implements UpdatesListener {
         this.botConfig = botConfig;
         this.casinoService = casinoService;
         this.drugsService = drugsService;
+        this.bot = bot;
         log.info("Bot Token: {}", botConfig.getToken());
-        this.bot = new TelegramBot(botConfig.getToken());
         bot.setUpdatesListener(this);
     }
 
@@ -116,12 +117,16 @@ public class MessagesListener implements UpdatesListener {
                 switch (dto.getType()) {
                     case REPLY_ORDER_TYPE:
                         log.info("Reply order query");
-                        orderService.checkOrders(query.message().chat().id(), originUser, dto.getOption(), -1, OrderService.Income.DATA)
-                                .forEach(action -> action.ifPresent(bot::execute));
+                        orderService.checkOrders(query.message().chat().id(), originUser,
+                                dto.getOption(), -1, OrderService.Income.DATA);
                         break;
                     case STEAL_TYPE:
                         log.info("Steal query");
-                        stealService.processSteal(originUser, dto, bot);
+                        stealService.processPerChatAsyncSteal(originUser, dto);
+                        break;
+                    case DROP_DRUGS_TYPE:
+                        log.info("Drop drugs query");
+                        drugsService.processDropDrug(originUser, dto);
                         break;
                 }
             }
@@ -146,41 +151,49 @@ public class MessagesListener implements UpdatesListener {
     private void processMessage(Message message) {
         log.info("proces message");
         UserInfo originUser = userService.loadUser(message);
-        if (isValidForCreditsCount(message)) {
+        if (message.leftChatMember() != null) {
+            log.info("Deactivate user");
+            String username = userService.getOriginUsername(message.leftChatMember());
+            userRepository.findByUsernameAndChatId(username, message.chat().id())
+                    .map(userMapper::toDto)
+                    .ifPresent(userService::deactivateUser);
+        } else if (isValidForCreditsCount(message)) {
             log.info("Process karma update");
-            karmaService.processKarmaUpdate(message, originUser, bot);
+            karmaService.processKarmaUpdate(message, originUser);
         } else if (message.text() != null && botConfig.getCreditCommand().equals(message.text())) {
             log.info("Print Credits");
             printCredits(message);
         } else if (message.text() != null && botConfig.getAutoReplyCommand().equals(message.text())) {
             log.info("Create auto-reply");
-            orderService.createReplyOrder(originUser)
-                    .ifPresent(bot::execute);
+            orderService.createReplyOrder(originUser);
             bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
         } else if (message.text() != null && botConfig.getRemovePlayBanCommand().equals(message.text())) {
             log.info("remove play ban command");
-            diceService.removePlayBan(originUser, bot);
+            diceService.removePlayBan(originUser);
         } else if (message.text() != null && botConfig.getStealCommand().equals(message.text())) {
             log.info("New steal command");
-            stealService.stealRequest(originUser, bot);
+            stealService.stealRequest(originUser);
             bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
         } else if (message.text() != null && botConfig.getBuyGuardCommand().equals(message.text())) {
             log.info("Buy guard request");
-            guardService.buyGuard(originUser, bot);
+            guardService.buyGuard(originUser);
         } else if (message.text() != null && botConfig.getBuyCasinoCommand().equals(message.text())) {
             log.info("Buy Casino request");
-            casinoService.buyCasino(originUser, bot);
+            casinoService.buyCasino(originUser);
         } else if (message.text() != null && botConfig.getDoDrugsCommand().equals(message.text())) {
             log.info("Do drugs request for {}", originUser.getUsername());
-            drugsService.doDrugs(originUser, bot);
+            drugsService.doDrugs(originUser);
+        } else if (message.text() != null && botConfig.getDropDrugsCommand().equals(message.text())) {
+            log.info("Drop drugs request from {}", originUser.getUsername());
+            drugsService.dropDrugsRequest(originUser);
         } else if (message.dice() != null) {
             log.info("Process dice");
-            diceService.processDice(message, originUser, bot);
+            diceService.processDice(message, originUser);
         } else if (message.text() != null) {
             log.info("Process text");
             messagesService.saveMessage(originUser, message);
-            orderService.checkOrders(message.chat().id(), originUser, message.text().trim(), message.messageId(), OrderService.Income.TEXT)
-                    .forEach(action -> action.ifPresent(bot::execute));
+            orderService.checkOrders(message.chat().id(), originUser, message.text().trim(),
+                    message.messageId(), OrderService.Income.TEXT);
         }
 
     }
@@ -189,6 +202,7 @@ public class MessagesListener implements UpdatesListener {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(message.chat().id());
         List<String> lines = userRepository.findByChatId(message.chat().id()).stream()
                 .map(userMapper::toDto)
+                .filter(UserInfo::isActive)
                 .sorted(Comparator.comparingInt(UserInfo::getSocialCredit)
                         .reversed())
                 .map(u -> toStringInfo(u, casino))
@@ -233,10 +247,12 @@ public class MessagesListener implements UpdatesListener {
 
     private void updateChatMember(ChatMemberUpdated chat) {
         log.info("Process new chat");
-        chatRepository.save(ChatEntity.builder()
-                .name(chat.chat().title())
-                .telegramId(chat.chat().id())
-                .build());
+
+        chatRepository.findByTelegramId(chat.chat().id())
+                .orElseGet(() -> chatRepository.save(ChatEntity.builder()
+                        .name(chat.chat().title())
+                        .telegramId(chat.chat().id())
+                        .build()));
 
         bot.execute(new SendMessage(chat.chat().id(), "Привіт хлопці"));
     }

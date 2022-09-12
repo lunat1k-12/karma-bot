@@ -23,7 +23,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +42,9 @@ public class StealService {
     private final OrderMapper orderMapper;
     private final GuardService guardService;
     private final CasinoService casinoService;
+    private final TelegramBot bot;
+
+    private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
     public static final int PAUSE_MILLIS = 3000;
     public static final int STEAL_BORDER = 1000;
 
@@ -46,7 +53,7 @@ public class StealService {
     public static final String POLICE_STICKER = "CAACAgIAAxkBAAICjmMWTBExj7-WpA_pWEKOaWmaaK71AALkBwACRvusBOq-PekdJ3n1KQQ";
     public static final int FEE = 100;
 
-    public void stealRequest(UserInfo originUser, TelegramBot bot) {
+    public void stealRequest(UserInfo originUser) {
         log.info("New steal request from {}", originUser.getUsername());
 
         if (creditsSum(originUser.getChatId()) < STEAL_BORDER) {
@@ -62,9 +69,10 @@ public class StealService {
             return;
         }
 
-        Order order = orderRepository.findAllByChatIdAndStageAndOriginUserId(originUser.getChatId(),
+        Order order = orderRepository.findAllByChatIdAndStageAndOriginUserIdAndType(originUser.getChatId(),
                         ReplyOrderStage.TARGET_REQUIRED.getId(),
-                        originUser.getId()).stream()
+                        originUser.getId(),
+                        OrderType.STEAL.getId()).stream()
                 .findFirst()
                 .map(orderMapper::toDto)
                 .orElse(null);
@@ -88,10 +96,19 @@ public class StealService {
         log.info("Steal request created");
     }
 
-    public void processSteal(UserInfo originUser, QueryDataDto query, TelegramBot bot) {
-        Order order = orderRepository.findAllByChatIdAndStageAndOriginUserId(originUser.getChatId(),
-                ReplyOrderStage.TARGET_REQUIRED.getId(),
-                originUser.getId()).stream()
+    public void processPerChatAsyncSteal(UserInfo originUser, QueryDataDto query) {
+        if (chatExecutors.get(originUser.getChatId()) == null) {
+            chatExecutors.put(originUser.getChatId(), Executors.newSingleThreadExecutor());
+        }
+
+        chatExecutors.get(originUser.getChatId())
+                .execute(() -> processSteal(originUser, query));
+    }
+    public void processSteal(UserInfo originUser, QueryDataDto query) {
+        Order order = orderRepository.findAllByChatIdAndStageAndOriginUserIdAndType(originUser.getChatId(),
+                        ReplyOrderStage.TARGET_REQUIRED.getId(),
+                        originUser.getId(),
+                        OrderType.STEAL.getId()).stream()
                 .findFirst()
                 .map(orderMapper::toDto)
                 .orElse(null);
@@ -161,7 +178,7 @@ public class StealService {
                         "заборона на доступ до казино на 6 годин! Якщо в тебе була охорона, то її більше нема.",
                         originUser.getUsername(), FEE)));
                 bot.execute(new SendSticker(originUser.getChatId(), POLICE_STICKER));
-                busted(originUser, bot);
+                busted(originUser);
             }
 
         } catch (InterruptedException e) {
@@ -173,7 +190,7 @@ public class StealService {
         return !banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(user),
                 user.getChatId(), LocalDateTime.now()).isEmpty();
     }
-    private void busted(UserInfo originUser, TelegramBot bot) {
+    private void busted(UserInfo originUser) {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
         if (originUser.getSocialCredit() < FEE && originUser.getId().equals(casino.getOwner().getId())) {
             casinoService.dropCasinoOwner(originUser.getChatId());

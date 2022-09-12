@@ -28,15 +28,15 @@ public class KarmaService {
     private final KarmaUpdateRepository karmaUpdateRepository;
     private final UserMapper userMapper;
     private final KarmaUpdateMapper karmaUpdateMapper;
+    private final TelegramBot bot;
 
-    public void processKarmaUpdate(Message message, UserInfo originUser, TelegramBot bot) {
+    public void processKarmaUpdate(Message message, UserInfo originUser) {
         UserInfo targetUser = userService.loadUser(message.replyToMessage());
 
         KarmaUpdateType type = KarmaUpdateType.INCREASE;
         switch (message.sticker().fileUniqueId()) {
             case UNIQ_PLUS_ID:
                 targetUser.plusCredit(20);
-                type = KarmaUpdateType.INCREASE;
                 break;
             case UNIQ_MINUS_ID:
                 targetUser.minusCredit(20);

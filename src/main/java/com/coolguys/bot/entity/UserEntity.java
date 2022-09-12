@@ -34,4 +34,7 @@ public class UserEntity {
 
     @Column(name = "telegram_id")
     private Long telegramId;
+
+    @Column(name = "status")
+    private String status;
 }

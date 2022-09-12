@@ -1,6 +1,7 @@
 package com.coolguys.bot.mapper;
 
 import com.coolguys.bot.dto.UserInfo;
+import com.coolguys.bot.dto.UserStatus;
 import com.coolguys.bot.entity.UserEntity;
 import org.springframework.stereotype.Component;
 
@@ -19,6 +20,7 @@ public class UserMapper implements EntityToDtoMapper<UserEntity, UserInfo> {
                 .chatId(entity.getChatId())
                 .id(entity.getId())
                 .username(entity.getUsername())
+                .status(UserStatus.getById(entity.getStatus()))
                 .build();
     }
 
@@ -34,6 +36,7 @@ public class UserMapper implements EntityToDtoMapper<UserEntity, UserInfo> {
                 .username(dto.getUsername())
                 .chatId(dto.getChatId())
                 .telegramId(dto.getTelegramId())
+                .status(dto.getStatus().getId())
                 .build();
     }
 }
