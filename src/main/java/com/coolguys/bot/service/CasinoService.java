@@ -36,6 +36,11 @@ public class CasinoService {
             return;
         }
 
+        if (casino.getOwner() != null && casino.getOwner().getId().equals(user.getId())) {
+            bot.execute(new SendMessage(user.getChatId(), "Казино вже твоє!"));
+            return;
+        }
+
         user.minusCredit(casino.getCurrentPrice());
         casino.plusPrice(CASINO_PRICE_STEP);
         casino.setOwner(user);

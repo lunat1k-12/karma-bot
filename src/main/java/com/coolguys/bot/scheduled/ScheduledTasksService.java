@@ -56,7 +56,7 @@ public class ScheduledTasksService {
     private static final String POLICE_CHECK_STICKER = "CAACAgIAAxkBAAIDRWMcw5JmJ-5YvBKHMffkfT67LnelAAJ-AwACbbBCA3EZlrX3Vpb0KQQ";
     private static final Integer DRUGS_FINE = 300;
 
-    @Scheduled(cron = "00 00 10,16 * * *")
+    @Scheduled(cron = "00 00 10 * * *")
     public void drugRaid() {
         StreamSupport.stream(userRepository.findAll().spliterator(), false)
                 .map(UserEntity::getChatId)

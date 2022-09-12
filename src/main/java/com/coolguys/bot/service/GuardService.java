@@ -36,6 +36,11 @@ public class GuardService {
             return;
         }
 
+        if (doesHaveGuard(originUser)) {
+            bot.execute(new SendMessage(originUser.getChatId(), "В тебе вже є охорона!"));
+            return;
+        }
+
         originUser.minusCredit(GUARD_PRICE);
         userRepository.save(userMapper.toEntity(originUser));
         guardRepository.save(GuardEntity.builder()
