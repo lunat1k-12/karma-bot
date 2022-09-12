@@ -14,6 +14,7 @@ public class UserInfo {
     private Integer socialCredit;
     private Long chatId;
     private Long telegramId;
+    private UserStatus status;
 
     public void plusCredit(Integer plus) {
         this.socialCredit += plus;
@@ -21,5 +22,9 @@ public class UserInfo {
 
     public void minusCredit(Integer minus) {
         this.socialCredit -= minus;
+    }
+
+    public boolean isActive() {
+        return UserStatus.ACTIVE.equals(status);
     }
 }

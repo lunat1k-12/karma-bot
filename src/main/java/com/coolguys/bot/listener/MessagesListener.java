@@ -147,10 +147,11 @@ public class MessagesListener implements UpdatesListener {
         log.info("proces message");
         UserInfo originUser = userService.loadUser(message);
         if (message.leftChatMember() != null) {
-            log.info("Remove user");
+            log.info("Deactivate user");
             String username = userService.getOriginUsername(message.leftChatMember());
             userRepository.findByUsernameAndChatId(username, message.chat().id())
-                    .ifPresent(userRepository::delete);
+                    .map(userMapper::toDto)
+                    .ifPresent(userService::deactivateUser);
         } else if (isValidForCreditsCount(message)) {
             log.info("Process karma update");
             karmaService.processKarmaUpdate(message, originUser);
@@ -193,6 +194,7 @@ public class MessagesListener implements UpdatesListener {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(message.chat().id());
         List<String> lines = userRepository.findByChatId(message.chat().id()).stream()
                 .map(userMapper::toDto)
+                .filter(UserInfo::isActive)
                 .sorted(Comparator.comparingInt(UserInfo::getSocialCredit)
                         .reversed())
                 .map(u -> toStringInfo(u, casino))

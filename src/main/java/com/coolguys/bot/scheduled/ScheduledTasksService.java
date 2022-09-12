@@ -11,6 +11,7 @@ import com.coolguys.bot.repository.UserRepository;
 import com.coolguys.bot.service.CasinoService;
 import com.coolguys.bot.service.DrugsService;
 import com.coolguys.bot.service.StealService;
+import com.coolguys.bot.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -48,6 +49,7 @@ public class ScheduledTasksService {
     private final DrugsService drugsService;
     private final CasinoService casinoService;
     private final StealService stealService;
+    private final UserService userService;
 
     private static final String TOP_STICKER = "CAACAgIAAxkBAAIBTGMQ3leswu0305mH8dYR1BByXz_dAAJmAQACPQ3oBOMh-z8iW4cZKQQ";
 
@@ -66,9 +68,7 @@ public class ScheduledTasksService {
 
     private void chatDrugRaid(Long chatId) {
         log.info("Search for drugs in {}", chatId);
-        List<UserInfo> users = userRepository.findByChatId(chatId).stream()
-                .map(userMapper::toDto)
-                .collect(Collectors.toList());
+        List<UserInfo> users = userService.findActiveByChatId(chatId);
 
         Random random = new Random();
 
@@ -133,14 +133,12 @@ public class ScheduledTasksService {
     }
 
     private void getTopAndWorstUser(Long chatId) {
-        List<UserInfo> users = userRepository.findByChatId(chatId).stream()
-                .map(userMapper::toDto)
-                .collect(Collectors.toList());
+        List<UserInfo> users = userService.findActiveByChatId(chatId);
 
         Random random = new Random();
 
         int topIndex = random.nextInt(users.size());
-        int bottomIndex = -1;
+        int bottomIndex;
         do {
             bottomIndex = random.nextInt(users.size());
         } while (bottomIndex == topIndex);
