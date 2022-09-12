@@ -55,10 +55,7 @@ public class DrugsService {
             return;
         }
 
-        Order order = orderRepository.findAllByChatIdAndOriginUserIdAndType(user.getChatId(),
-                        user.getId(),
-                        OrderType.DROP_DRUGS.getId()).stream()
-                .findFirst()
+        Order order = orderRepository.findLastDrugDrop(user.getChatId(), user.getId())
                 .map(orderMapper::toDto)
                 .orElse(null);
 
@@ -66,6 +63,7 @@ public class DrugsService {
             if (ReplyOrderStage.TARGET_REQUIRED.equals(order.getStage())) {
                 bot.execute(new SendMessage(user.getChatId(), "Ти вже створив замовлення\nОбери кому хочеш підкинути наркотики:")
                         .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(user.getChatId(), user.getId(), QueryDataDto.DROP_DRUGS_TYPE)));
+                return;
             } else if (!findActiveDrugDeals(order.getTargetUser()).isEmpty()) {
                 bot.execute(new SendMessage(user.getChatId(), "Не зараз.\nОстання справа ще закінчилась"));
                 return;
