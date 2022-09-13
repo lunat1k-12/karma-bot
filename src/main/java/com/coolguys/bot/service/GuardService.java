@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 
 @Service
 @RequiredArgsConstructor
@@ -56,6 +57,15 @@ public class GuardService {
     public boolean doesHaveGuard(UserInfo targetUser) {
         return !guardRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(targetUser),
                 targetUser.getChatId(), LocalDateTime.now()).isEmpty();
+    }
+
+    public String getGuardTillLabel(UserInfo targetUser) {
+        return guardRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(targetUser),
+                        targetUser.getChatId(), LocalDateTime.now()).stream()
+                .max(Comparator.comparing(GuardEntity::getExpires))
+                .map(GuardEntity::getExpires)
+                .map(DateConverter::localDateTimeToStringLabel)
+                .orElse(null);
     }
 
     @Transactional

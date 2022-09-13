@@ -23,4 +23,5 @@ public class BotConfig {
     private String doDrugsCommand;
     private String dropDrugsCommand;
     private String buyPoliceCommand;
+    private String myStatsCommand;
 }

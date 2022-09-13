@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -192,6 +193,16 @@ public class StealService {
         return !banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(user),
                 user.getChatId(), LocalDateTime.now()).isEmpty();
     }
+
+    public String getJailTillLabel(UserInfo user) {
+        return banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(user),
+                user.getChatId(), LocalDateTime.now()).stream()
+                .max(Comparator.comparing(BanRecordEntity::getExpires))
+                .map(BanRecordEntity::getExpires)
+                .map(DateConverter::localDateTimeToStringLabel)
+                .orElse(null);
+    }
+
     private void busted(UserInfo originUser) {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
         PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(originUser.getChatId());
