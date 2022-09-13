@@ -1,6 +1,7 @@
 package com.coolguys.bot.service;
 
 import com.coolguys.bot.dto.CasinoDto;
+import com.coolguys.bot.dto.GuardDepartmentDto;
 import com.coolguys.bot.dto.Order;
 import com.coolguys.bot.dto.OrderType;
 import com.coolguys.bot.dto.PoliceDepartmentDto;
@@ -46,6 +47,7 @@ public class StealService {
     private final CasinoService casinoService;
     private final TelegramBot bot;
     private final PoliceDepartmentService policeDepartmentService;
+    private final GuardDepartmentService guardDepartmentService;
 
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
     public static final int PAUSE_MILLIS = 3000;
@@ -206,6 +208,7 @@ public class StealService {
     private void busted(UserInfo originUser) {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
         PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(originUser.getChatId());
+        GuardDepartmentDto gd = guardDepartmentService.findOrCreateGdByChatID(originUser.getChatId());
 
         if (originUser.getSocialCredit() < FEE) {
             if (casino.getOwner() != null && originUser.getId().equals(casino.getOwner().getId())) {
@@ -219,6 +222,12 @@ public class StealService {
                 bot.execute(new SendMessage(originUser.getChatId(),
                         String.format("@%s ти більше не власник поліцейської ділянки", originUser.getUsername())));
                 log.info("PD owner removed");
+            }
+            if (gd.getOwner() != null && originUser.getId().equals(gd.getOwner().getId())) {
+                guardDepartmentService.dropGuardOwner(originUser.getChatId());
+                bot.execute(new SendMessage(originUser.getChatId(),
+                        String.format("@%s ти більше не власник охороного агенства", originUser.getUsername())));
+                log.info("GD owner removed");
             }
         }
 

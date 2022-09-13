@@ -20,8 +20,7 @@ import org.springframework.stereotype.Service;
 public class PoliceDepartmentService {
     private static final Integer INITIAL_PD_PRICE = 600;
     private static final Integer PD_PRICE_STEP = 100;
-    private static final String PD_BUY_STICKER = "CAACAgIAAxkBAAIEzmMfhf0vM9noLkEILQ7-u-qIMaI7AAJcAQACPQ3oBAABMsv78bItBCkE";
-
+    private static final String PD_BUY_STICKER = "CAACAgIAAxkBAAIFxGMgvtuIMCLUGvpcfJpLNoJE-mKcAAJJAANSiZEjjN0lWOTP9-8pBA";
     private final PoliceDepartmentRepository policeDepartmentRepository;
     private final PoliceDepartmentMapper policeDepartmentMapper;
     private final UserRepository userRepository;
