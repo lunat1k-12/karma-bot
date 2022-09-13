@@ -2,6 +2,7 @@ package com.coolguys.bot.listener;
 
 import com.coolguys.bot.conf.BotConfig;
 import com.coolguys.bot.dto.CasinoDto;
+import com.coolguys.bot.dto.DrugAction;
 import com.coolguys.bot.dto.PoliceDepartmentDto;
 import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.UserInfo;
@@ -10,6 +11,7 @@ import com.coolguys.bot.mapper.UserMapper;
 import com.coolguys.bot.repository.ChatRepository;
 import com.coolguys.bot.repository.UserRepository;
 import com.coolguys.bot.service.CasinoService;
+import com.coolguys.bot.service.DateConverter;
 import com.coolguys.bot.service.DiceService;
 import com.coolguys.bot.service.DrugsService;
 import com.coolguys.bot.service.GuardService;
@@ -194,6 +196,9 @@ public class MessagesListener implements UpdatesListener {
         } else if (message.text() != null && botConfig.getBuyPoliceCommand().equals(message.text())) {
             log.info("Buy police department request");
             processPdBuy(originUser);
+        } else if (message.text() != null && botConfig.getMyStatsCommand().equals(message.text())) {
+            log.info("Print personal stats request");
+            printPersonalStats(originUser);
         } else if (message.dice() != null) {
             log.info("Process dice");
             diceService.processDice(message, originUser);
@@ -228,6 +233,33 @@ public class MessagesListener implements UpdatesListener {
         }
     }
 
+    private void printPersonalStats(UserInfo user) {
+        StringBuilder sb = new StringBuilder().append("Показники для @")
+                .append(user.getUsername())
+                .append("\n****************");
+
+        if (guardService.doesHaveGuard(user)) {
+            sb.append("\nмає охорону до:\n");
+            sb.append(guardService.getGuardTillLabel(user));
+        }
+        if (stealService.isInJail(user)) {
+            sb.append("\nУ в`язниці до:\n");
+            sb.append(stealService.getJailTillLabel(user));
+        }
+
+        List<DrugAction> drugs = drugsService.findActiveDrugDeals(user);
+        if (!drugs.isEmpty()) {
+            sb.append("\nМає наркотики до:\n");
+            sb.append(drugs.stream()
+                    .max(Comparator.comparing(DrugAction::getExpires))
+                    .map(DrugAction::getExpires)
+                    .map(DateConverter::localDateTimeToStringLabel)
+                    .orElse(null));
+        }
+
+        sb.append("\nКредити: ").append(user.getSocialCredit());
+        bot.execute(new SendMessage(user.getChatId(), sb.toString()));
+    }
     private void printCredits(Message message) {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(message.chat().id());
         PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(message.chat().id());
@@ -276,6 +308,9 @@ public class MessagesListener implements UpdatesListener {
         }
         if (pd.getOwner() != null && pd.getOwner().getId().equals(user.getId())) {
             sb.append("\uD83D\uDE94");
+        }
+        if (!drugsService.findActiveDrugDeals(user).isEmpty()) {
+            sb.append("\uD83D\uDC89");
         }
         return sb.toString();
     }
