@@ -23,4 +23,5 @@
     <include file="/changelog/changes/insert-drop-drugs-note.xml"/>
     <include file="/changelog/changes/create-police-department-table.xml"/>
     <include file="/changelog/changes/insert-pd-update-note.xml"/>
+    <include file="/changelog/changes/insert-personal-info-note.xml"/>
 </databaseChangeLog>
