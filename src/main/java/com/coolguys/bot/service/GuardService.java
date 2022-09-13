@@ -25,6 +25,7 @@ public class GuardService {
     private final BanRecordRepository banRecordRepository;
     private final UserMapper userMapper;
     private final TelegramBot bot;
+    private final GuardDepartmentService guardDepartmentService;
 
     public void buyGuard(UserInfo originUser) {
         if (GUARD_PRICE > originUser.getSocialCredit()) {
@@ -51,6 +52,7 @@ public class GuardService {
                 .chatId(originUser.getChatId())
                 .build());
 
+        guardDepartmentService.processGuardOwnerIncome(originUser.getChatId(), GUARD_PRICE);
         bot.execute(new SendMessage(originUser.getChatId(), "Тепер твої гроші під охороною хлопче!"));
     }
 

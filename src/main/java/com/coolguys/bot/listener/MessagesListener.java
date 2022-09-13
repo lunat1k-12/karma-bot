@@ -3,6 +3,7 @@ package com.coolguys.bot.listener;
 import com.coolguys.bot.conf.BotConfig;
 import com.coolguys.bot.dto.CasinoDto;
 import com.coolguys.bot.dto.DrugAction;
+import com.coolguys.bot.dto.GuardDepartmentDto;
 import com.coolguys.bot.dto.PoliceDepartmentDto;
 import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.UserInfo;
@@ -14,6 +15,7 @@ import com.coolguys.bot.service.CasinoService;
 import com.coolguys.bot.service.DateConverter;
 import com.coolguys.bot.service.DiceService;
 import com.coolguys.bot.service.DrugsService;
+import com.coolguys.bot.service.GuardDepartmentService;
 import com.coolguys.bot.service.GuardService;
 import com.coolguys.bot.service.KarmaService;
 import com.coolguys.bot.service.MessagesService;
@@ -63,6 +65,7 @@ public class MessagesListener implements UpdatesListener {
     private final CasinoService casinoService;
     private final DrugsService drugsService;
     private final PoliceDepartmentService policeDepartmentService;
+    private final GuardDepartmentService guardDepartmentService;
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
@@ -77,7 +80,8 @@ public class MessagesListener implements UpdatesListener {
                             StealService stealService, GuardService guardService,
                             BotConfig botConfig, CasinoService casinoService,
                             DrugsService drugsService, TelegramBot bot,
-                            PoliceDepartmentService policeDepartmentService) {
+                            PoliceDepartmentService policeDepartmentService,
+                            GuardDepartmentService guardDepartmentService) {
         this.chatRepository = chatRepository;
         this.userRepository = userRepository;
         this.userMapper = userMapper;
@@ -93,6 +97,7 @@ public class MessagesListener implements UpdatesListener {
         this.drugsService = drugsService;
         this.bot = bot;
         this.policeDepartmentService = policeDepartmentService;
+        this.guardDepartmentService = guardDepartmentService;
         log.info("Bot Token: {}", botConfig.getToken());
         bot.setUpdatesListener(this);
     }
@@ -199,6 +204,9 @@ public class MessagesListener implements UpdatesListener {
         } else if (message.text() != null && botConfig.getMyStatsCommand().equals(message.text())) {
             log.info("Print personal stats request");
             printPersonalStats(originUser);
+        } else if (message.text() != null && botConfig.getBuyGuardDepartmentCommand().equals(message.text())) {
+            log.info("Buy Guard department request");
+            processGdBuy(originUser);
         } else if (message.dice() != null) {
             log.info("Process dice");
             diceService.processDice(message, originUser);
@@ -213,23 +221,48 @@ public class MessagesListener implements UpdatesListener {
 
     private void processCasinoBuy(UserInfo originUser) {
         if (casinoService.buyCasino(originUser)) {
-            PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(originUser.getChatId());
-            if (pd.getOwner() != null && pd.getOwner().getId().equals(originUser.getId())) {
-                policeDepartmentService.dropPdOwner(originUser.getChatId());
-                bot.execute(new SendMessage(originUser.getChatId(),
-                        String.format("@%s більше не властник поліцейської ділянки", originUser.getUsername())));
-            }
+            dropPoliceDepartmentIfExists(originUser);
+            dropGuardIfExists(originUser);
         }
     }
 
     private void processPdBuy(UserInfo originUser) {
         if (policeDepartmentService.buyPoliceDepartment(originUser)) {
-            CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
-            if (casino.getOwner() != null && casino.getOwner().getId().equals(originUser.getId())) {
-                casinoService.dropCasinoOwner(originUser.getChatId());
-                bot.execute(new SendMessage(originUser.getChatId(),
-                        String.format("@%s більше не властник казино", originUser.getUsername())));
-            }
+            dropCasinoIfExists(originUser);
+            dropGuardIfExists(originUser);
+        }
+    }
+
+    private void processGdBuy(UserInfo originUser) {
+        if (guardDepartmentService.buyGuardDepartment(originUser)) {
+            dropCasinoIfExists(originUser);
+            dropPoliceDepartmentIfExists(originUser);
+        }
+    }
+
+    private void dropGuardIfExists(UserInfo originUser) {
+        GuardDepartmentDto gd = guardDepartmentService.findOrCreateGdByChatID(originUser.getChatId());
+        if (gd.getOwner() != null && gd.getOwner().getId().equals(originUser.getId())) {
+            guardDepartmentService.dropGuardOwner(originUser.getChatId());
+            bot.execute(new SendMessage(originUser.getChatId(),
+                    String.format("@%s більше не властник охороного агенства", originUser.getUsername())));
+        }
+    }
+    private void dropCasinoIfExists(UserInfo originUser) {
+        CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
+        if (casino.getOwner() != null && casino.getOwner().getId().equals(originUser.getId())) {
+            casinoService.dropCasinoOwner(originUser.getChatId());
+            bot.execute(new SendMessage(originUser.getChatId(),
+                    String.format("@%s більше не властник казино", originUser.getUsername())));
+        }
+    }
+
+    private void dropPoliceDepartmentIfExists(UserInfo originUser) {
+        PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(originUser.getChatId());
+        if (pd.getOwner() != null && pd.getOwner().getId().equals(originUser.getId())) {
+            policeDepartmentService.dropPdOwner(originUser.getChatId());
+            bot.execute(new SendMessage(originUser.getChatId(),
+                    String.format("@%s більше не властник поліцейської ділянки", originUser.getUsername())));
         }
     }
 
@@ -263,12 +296,13 @@ public class MessagesListener implements UpdatesListener {
     private void printCredits(Message message) {
         CasinoDto casino = casinoService.findOrCreateCasinoByChatID(message.chat().id());
         PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(message.chat().id());
+        GuardDepartmentDto gd = guardDepartmentService.findOrCreateGdByChatID(message.chat().id());
         List<String> lines = userRepository.findByChatId(message.chat().id()).stream()
                 .map(userMapper::toDto)
                 .filter(UserInfo::isActive)
                 .sorted(Comparator.comparingInt(UserInfo::getSocialCredit)
                         .reversed())
-                .map(u -> toStringInfo(u, casino, pd))
+                .map(u -> toStringInfo(u, casino, pd, gd))
                 .collect(Collectors.toList());
 
         if (lines.size() >= 1) {
@@ -292,10 +326,11 @@ public class MessagesListener implements UpdatesListener {
                         "\nСумарний Банк: " +
                         stealService.creditsSum(message.chat().id()) +
                         "\nВартість казино: " + casino.getCurrentPrice() +
-                        "\nВартість поліції: " + pd.getCurrentPrice()));
+                        "\nВартість поліції: " + pd.getCurrentPrice() +
+                        "\nВартість охоронки: " + gd.getCurrentPrice()));
     }
 
-    private String toStringInfo(UserInfo user, CasinoDto casino, PoliceDepartmentDto pd) {
+    private String toStringInfo(UserInfo user, CasinoDto casino, PoliceDepartmentDto pd, GuardDepartmentDto gd) {
         StringBuilder sb = new StringBuilder(String.format("%s : %s ", user.getUsername(), user.getSocialCredit()));
         if (guardService.doesHaveGuard(user)) {
             sb.append("⚔️");
@@ -308,6 +343,9 @@ public class MessagesListener implements UpdatesListener {
         }
         if (pd.getOwner() != null && pd.getOwner().getId().equals(user.getId())) {
             sb.append("\uD83D\uDE94");
+        }
+        if (gd.getOwner() != null && gd.getOwner().getId().equals(user.getId())) {
+            sb.append("\uD83D\uDEE1");
         }
         if (!drugsService.findActiveDrugDeals(user).isEmpty()) {
             sb.append("\uD83D\uDC89");
