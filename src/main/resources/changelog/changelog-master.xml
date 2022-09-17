@@ -26,4 +26,11 @@
     <include file="/changelog/changes/insert-personal-info-note.xml"/>
     <include file="/changelog/changes/create-guard-department-table.xml"/>
     <include file="/changelog/changes/insert-guard-department-update.xml"/>
+    <include file="/changelog/changes/create-telegram-user-table.xml"/>
+    <include file="/changelog/changes/create-telegram-chat-table.xml"/>
+    <include file="/changelog/changes/create-chat-account-table.xml"/>
+    <include file="/changelog/changes/migrate-users.xml"/>
+    <include file="/changelog/changes/migrate-chats.xml"/>
+    <include file="/changelog/changes/migrate-accounts.xml"/>
+    <include file="/changelog/changes/alter-chat-account-table.xml"/>
 </databaseChangeLog>
