@@ -2,8 +2,10 @@ package com.coolguys.bot.service;
 
 import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.dto.UserStatus;
+import com.coolguys.bot.entity.ChatAccountEntity;
 import com.coolguys.bot.entity.UserEntity;
 import com.coolguys.bot.mapper.UserMapper;
+import com.coolguys.bot.repository.ChatAccountRepository;
 import com.coolguys.bot.repository.UserRepository;
 import com.pengrad.telegrambot.model.CallbackQuery;
 import com.pengrad.telegrambot.model.Message;
@@ -21,7 +23,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final ChatAccountRepository chatAccountRepository;
 
+    public ChatAccountEntity getChatAccount(Long userId, Long chatId) {
+        return chatAccountRepository.findByUserIdAndChatId(userId, chatId)
+                .orElse(null);
+    }
     public void deactivateUser(UserInfo user) {
         user.setStatus(UserStatus.INACTIVE);
         userRepository.save(userMapper.toEntity(user));
