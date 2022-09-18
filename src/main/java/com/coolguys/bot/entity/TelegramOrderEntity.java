@@ -16,23 +16,37 @@ import javax.persistence.OneToOne;
 import static javax.persistence.GenerationType.IDENTITY;
 
 @Data
-@Entity(name = "police_department")
+@Entity(name = "telegram_order_request")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Deprecated
-public class PoliceDepartmentEntity {
+public class TelegramOrderEntity {
     @Id
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
 
-    @OneToOne(cascade = CascadeType.MERGE)
-    @JoinColumn(name = "owner_id", referencedColumnName = "id")
-    private UserEntity owner;
+    @Column(name = "user_id")
+    private Long originUserId;
 
-    @Column(name = "current_price")
-    private Integer currentPrice;
+    @Column(name = "type")
+    private String type;
 
     @Column(name = "chat_id")
     private Long chatId;
+
+    @Column(name = "stage")
+    private String stage;
+
+    @Column(name = "iterations_count")
+    private Long iterationCount;
+
+    @Column(name = "current_iteration")
+    private Long currentIteration;
+
+    @Column(name = "respond_message")
+    private String respondMessage;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "target_user_id", referencedColumnName = "id")
+    private TelegramUserEntity targetUser;
 }

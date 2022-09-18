@@ -16,19 +16,18 @@ import javax.persistence.OneToOne;
 import static javax.persistence.GenerationType.IDENTITY;
 
 @Data
-@Entity(name = "police_department")
+@Entity(name = "telegram_casino")
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Deprecated
-public class PoliceDepartmentEntity {
+public class TelegramCasinoEntity {
     @Id
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
 
     @OneToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "owner_id", referencedColumnName = "id")
-    private UserEntity owner;
+    private TelegramUserEntity owner;
 
     @Column(name = "current_price")
     private Integer currentPrice;

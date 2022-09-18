@@ -26,6 +26,7 @@
     <include file="/changelog/changes/insert-personal-info-note.xml"/>
     <include file="/changelog/changes/create-guard-department-table.xml"/>
     <include file="/changelog/changes/insert-guard-department-update.xml"/>
+    <!--migration to the new data structure-->
     <include file="/changelog/changes/create-telegram-user-table.xml"/>
     <include file="/changelog/changes/create-telegram-chat-table.xml"/>
     <include file="/changelog/changes/create-chat-account-table.xml"/>
@@ -33,4 +34,14 @@
     <include file="/changelog/changes/migrate-chats.xml"/>
     <include file="/changelog/changes/migrate-accounts.xml"/>
     <include file="/changelog/changes/alter-chat-account-table.xml"/>
+    <include file="/changelog/changes/create-telegram-messages-table.xml"/>
+    <include file="/changelog/changes/create-telegram-dice-request.xml"/>
+    <include file="/changelog/changes/create-telegram-drug-action.xml"/>
+    <include file="/changelog/changes/create-telegram-karma-update-table.xml"/>
+    <include file="/changelog/changes/create-telegram-ban-record.xml"/>
+    <include file="/changelog/changes/create-telegram-casino-table.xml"/>
+    <include file="/changelog/changes/create-telegram-guard-department.xml"/>
+    <include file="/changelog/changes/create-telegram-guard-table.xml"/>
+    <include file="/changelog/changes/create-telegram-order-table.xml"/>
+    <include file="/changelog/changes/create-telegram-police-department-table.xml"/>
 </databaseChangeLog>

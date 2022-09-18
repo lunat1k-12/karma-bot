@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="revision-1" author="evgen.chemeris">
+        <createTable tableName="telegram_dice_request">
+            <column name="id" type="INTEGER" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="user_id" type="NUMBER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="chat_id" type="NUMBER">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="telegram_dice_request"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_telegram_dice_user_origin"
+                                 referencedTableName="telegram_user"
+                                 referencedColumnNames="id" />
+
+        <addForeignKeyConstraint baseTableName="telegram_dice_request"
+                                 baseColumnNames="chat_id"
+                                 constraintName="fk_telegram_dice_chat"
+                                 referencedTableName="telegram_chat"
+                                 referencedColumnNames="id" />
+
+        <sql>
+            insert into telegram_dice_request (user_id, date, chat_id)
+            select (select ui.telegram_id from user_info ui where ui.id = dr.user_id), date, chat_id from dice_request dr;
+        </sql>
+    </changeSet>
+</databaseChangeLog>

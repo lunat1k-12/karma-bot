@@ -22,6 +22,7 @@ import static javax.persistence.GenerationType.IDENTITY;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Deprecated
 public class BanRecordEntity {
 
     @Id
