@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="revision-3" author="evgen.chemeris">
+        <createTable tableName="telegram_message">
+            <column name="id" type="INTEGER" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="user_id" type="NUMBER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="message" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="date" type="DATETIME">
+                <constraints nullable="false"/>
+            </column>
+            <column name="chat_id" type="NUMBER">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint baseTableName="telegram_message"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_telegram_message_user"
+                                 referencedTableName="telegram_user"
+                                 referencedColumnNames="id" />
+
+        <addForeignKeyConstraint baseTableName="telegram_message"
+                                 baseColumnNames="chat_id"
+                                 constraintName="fk_telegram_message_chat"
+                                 referencedTableName="telegram_chat"
+                                 referencedColumnNames="id" />
+
+        <sql>
+            insert into telegram_message (user_id, message, date, chat_id)
+            select (select ui.telegram_id from user_info ui where ui.id = cm.user_id), message, date, chat_id from chat_message cm;
+        </sql>
+    </changeSet>
+</databaseChangeLog>

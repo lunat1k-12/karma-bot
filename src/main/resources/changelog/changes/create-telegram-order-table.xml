@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="revision-1" author="evgen.chemeris">
+        <createTable tableName="telegram_order_request">
+            <column name="id" type="INTEGER" autoIncrement="true">
+                <constraints primaryKey="true"/>
+            </column>
+            <column name="user_id" type="NUMBER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="chat_id" type="NUMBER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="stage" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="iterations_count" type="NUMBER"/>
+            <column name="current_iteration" type="NUMBER"/>
+            <column name="respond_message" type="text" />
+            <column name="target_user_id" type="NUMBER" />
+        </createTable>
+        <addForeignKeyConstraint baseTableName="telegram_order_request"
+                                 baseColumnNames="user_id"
+                                 constraintName="fk_telegram_order_origin"
+                                 referencedTableName="telegram_user"
+                                 referencedColumnNames="id" />
+
+        <addForeignKeyConstraint baseTableName="telegram_order_request"
+                                 baseColumnNames="target_user_id"
+                                 constraintName="fk_telegram_order_target"
+                                 referencedTableName="telegram_user"
+                                 referencedColumnNames="id" />
+
+        <addForeignKeyConstraint baseTableName="telegram_order_request"
+                                 baseColumnNames="chat_id"
+                                 constraintName="fk_telegram_order_request_chat"
+                                 referencedTableName="telegram_chat"
+                                 referencedColumnNames="id" />
+
+        <sql>
+            insert into telegram_order_request (user_id, type, chat_id, stage, iterations_count, current_iteration, respond_message, target_user_id)
+            select (select ui.telegram_id from user_info ui where ui.id = cm.user_id),
+                   type,
+                   chat_id,
+                   stage,
+                   iterations_count,
+                   current_iteration,
+                   respond_message,
+                   (select ui.telegram_id from user_info ui where ui.id = cm.target_user_id)
+            from order_request cm;
+        </sql>
+    </changeSet>
+</databaseChangeLog>

@@ -1,14 +1,14 @@
 package com.coolguys.bot.service;
 
-import com.coolguys.bot.dto.Order;
+import com.coolguys.bot.dto.ChatAccount;
 import com.coolguys.bot.dto.OrderType;
 import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.ReplyOrderStage;
-import com.coolguys.bot.dto.UserInfo;
-import com.coolguys.bot.mapper.OrderMapper;
-import com.coolguys.bot.mapper.UserMapper;
-import com.coolguys.bot.repository.OrderRepository;
-import com.coolguys.bot.repository.UserRepository;
+import com.coolguys.bot.dto.TelegramOrder;
+import com.coolguys.bot.mapper.ChatAccountMapper;
+import com.coolguys.bot.mapper.TelegramOrderMapper;
+import com.coolguys.bot.repository.ChatAccountRepository;
+import com.coolguys.bot.repository.TelegramOrderRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.DeleteMessage;
@@ -27,48 +27,47 @@ import static com.coolguys.bot.dto.ReplyOrderStage.MESSAGE_REQUIRED;
 @RequiredArgsConstructor
 @Slf4j
 public class OrderService {
-
-    private final OrderRepository repository;
-    private final OrderMapper orderMapper;
-    private final UserRepository userRepository;
-    private final UserMapper userMapper;
     private final KeyboardService keyboardService;
+    private final ChatAccountRepository chatAccountRepository;
+    private final ChatAccountMapper chatAccountMapper;
+    private final TelegramOrderRepository telegramOrderRepository;
+    private final TelegramOrderMapper telegramOrderMapper;
     private final TelegramBot bot;
 
     private static final Long DEFAULT_ITERATIONS = 10L;
     private static final Integer DEFAULT_PRICE = 50;
 
-    public void createReplyOrder(UserInfo originUser) {
-        if (originUser.getSocialCredit() < DEFAULT_PRICE) {
-            bot.execute(new SendMessage(originUser.getChatId(), "Підсобирай кредитів жебрак"));
+    public void createReplyOrder(ChatAccount originAcc) {
+        if (originAcc.getSocialCredit() < DEFAULT_PRICE) {
+            bot.execute(new SendMessage(originAcc.getChat().getId(), "Підсобирай кредитів жебрак"));
             return;
         }
 
-        Order newOrder = Order.builder()
-                .chatId(originUser.getChatId())
-                .originUserId(originUser.getId())
+        TelegramOrder newOrder = TelegramOrder.builder()
+                .chatId(originAcc.getChat().getId())
+                .originAccId(originAcc.getId())
                 .type(OrderType.MESSAGE_REPLY)
                 .stage(ReplyOrderStage.TARGET_REQUIRED)
                 .iterationCount(DEFAULT_ITERATIONS)
                 .currentIteration(0L)
                 .build();
 
-        originUser.minusCredit(DEFAULT_PRICE);
-        userRepository.save(userMapper.toEntity(originUser));
-        repository.save(orderMapper.toEntity(newOrder));
-        bot.execute(new SendMessage(originUser.getChatId(), "Обери жертву:")
+        originAcc.minusCredit(DEFAULT_PRICE);
+        chatAccountRepository.save(chatAccountMapper.toEntity(originAcc));
+        telegramOrderRepository.save(telegramOrderMapper.toEntity(newOrder));
+        bot.execute(new SendMessage(originAcc.getChat().getId(), "Обери жертву:")
                 .parseMode(ParseMode.HTML)
-                .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(originUser.getChatId(), originUser.getId(),
+                .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(originAcc.getChat().getId(), originAcc.getId(),
                         QueryDataDto.REPLY_ORDER_TYPE)));
     }
 
-    public void checkOrders(Long chatId, UserInfo originUser,
-                                                   String messageText, Integer messageId, Income source) {
-        getActiveOrders(chatId)
+    public void checkOrders(Long chatId, ChatAccount originUser,
+                            String messageText, Integer messageId, Income source) {
+        getActiveTelegramOrders(chatId)
                 .forEach(order -> processReplyOrder(order, originUser, messageText, messageId, source));
     }
 
-    private void processReplyOrder(Order order, UserInfo sender, String messageText, Integer messageId, Income source) {
+    private void processReplyOrder(TelegramOrder order, ChatAccount sender, String messageText, Integer messageId, Income source) {
         switch(order.getStage()) {
             case TARGET_REQUIRED:
                 processReplyTarget(order, messageText, sender, source);
@@ -82,8 +81,8 @@ public class OrderService {
         }
     }
 
-    private void processInProgressMessage(Order order, UserInfo targetUser, Integer messageId, Income source) {
-        if (!order.getTargetUser().getId().equals(targetUser.getId()) || Income.DATA.equals(source)) {
+    private void processInProgressMessage(TelegramOrder order, ChatAccount targetAcc, Integer messageId, Income source) {
+        if (!order.getTargetAcc().getId().equals(targetAcc.getId()) || Income.DATA.equals(source)) {
             return;
         }
 
@@ -91,73 +90,76 @@ public class OrderService {
         if (order.getCurrentIteration() >= order.getIterationCount()) {
             order.setStage(DONE);
         }
-        repository.save(orderMapper.toEntity(order));
+
+        telegramOrderRepository.save(telegramOrderMapper.toEntity(order));
         bot.execute(new SendMessage(order.getChatId(), order.getRespondMessage())
                 .replyToMessageId(messageId));
     }
-    private void processReplyMessage(Order order, String messageText, UserInfo originUser, Integer messageId, Income source) {
-        if (!order.getOriginUserId().equals(originUser.getId()) || Income.DATA.equals(source)) {
+
+    private void processReplyMessage(TelegramOrder order, String messageText, ChatAccount originAcc, Integer messageId, Income source) {
+        if (!order.getOriginAccId().equals(originAcc.getId()) || Income.DATA.equals(source)) {
             return;
         }
 
         order.setRespondMessage(messageText);
         order.setStage(IN_PROGRESS);
 
-        repository.save(orderMapper.toEntity(order));
+        telegramOrderRepository.save(telegramOrderMapper.toEntity(order));
         bot.execute(new SendMessage(order.getChatId(), "Відповідь встановленно"));
         bot.execute(new DeleteMessage(order.getChatId(), messageId));
     }
 
-    private void processReplyTarget(Order order, String messageText, UserInfo originUser, Income source) {
+    private void processReplyTarget(TelegramOrder order, String messageText, ChatAccount originAcc, Income source) {
 
-        if (!order.getOriginUserId().equals(originUser.getId())) {
+        if (!order.getOriginAccId().equals(originAcc.getId())) {
             return;
         }
 
         if (Income.TEXT.equals(source)) {
             bot.execute(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
-                    .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(order.getChatId(), originUser.getId(),
+                    .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(order.getChatId(), originAcc.getId(),
                             QueryDataDto.REPLY_ORDER_TYPE)));
             return;
         }
 
         Long targetId;
-        UserInfo targetUser;
+        ChatAccount targetAcc;
         try {
             targetId = Long.valueOf(messageText);
             if (targetId.equals(0L)) {
-                repository.deleteById(order.getId());
-                originUser.plusCredit(DEFAULT_PRICE);
-                userRepository.save(userMapper.toEntity(originUser));
+                telegramOrderRepository.deleteById(order.getId());
+                originAcc.plusCredit(DEFAULT_PRICE);
+                chatAccountRepository.save(chatAccountMapper.toEntity(originAcc));
                 bot.execute(new SendMessage(order.getChatId(), "Замовлення скасовано"));
                 return;
             }
-            targetUser = userRepository.findById(targetId)
-                    .map(userMapper::toDto)
+            targetAcc = chatAccountRepository.findById(targetId)
+                    .map(chatAccountMapper::toDto)
                     .orElse(null);
-            if (targetUser == null || targetUser.getId().equals(originUser.getId())) {
+            if (targetAcc == null || targetAcc.getId().equals(originAcc.getId())) {
                 bot.execute(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
-                        .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(order.getChatId(), originUser.getId(),
+                        .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(order.getChatId(), originAcc.getId(),
                                 QueryDataDto.REPLY_ORDER_TYPE)));
                 return;
             }
         } catch (NumberFormatException ex) {
             log.info("Invalid id: {}", messageText);
             bot.execute(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
-                    .replyMarkup(keyboardService.getTargetSelectionPersonKeyboard(order.getChatId(), originUser.getId(),
+                    .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(order.getChatId(), originAcc.getId(),
                             QueryDataDto.REPLY_ORDER_TYPE)));
             return;
         }
 
-        order.setTargetUser(targetUser);
+        order.setTargetAcc(targetAcc);
         order.setStage(MESSAGE_REQUIRED);
-        repository.save(orderMapper.toEntity(order));
+        telegramOrderRepository.save(telegramOrderMapper.toEntity(order));
         bot.execute(new SendMessage(order.getChatId(), "Ок, тепер напиши який текст ти хочеш встановити на автовідповідь"));
     }
-    private Stream<Order> getActiveOrders(Long chatId) {
-        return repository.findAllByChatIdAndTypeAndStageIsNot(chatId, OrderType.MESSAGE_REPLY.getId(), ReplyOrderStage.DONE.getId())
+
+    private Stream<TelegramOrder> getActiveTelegramOrders(Long chatId) {
+        return telegramOrderRepository.findAllByChatIdAndTypeAndStageIsNot(chatId, OrderType.MESSAGE_REPLY.getId(), ReplyOrderStage.DONE.getId())
                 .stream()
-                .map(orderMapper::toDto);
+                .map(telegramOrderMapper::toDto);
     }
 
     public enum Income {
