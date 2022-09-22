@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Deprecated
 @Repository
 public interface CasinoRepository extends CrudRepository<CasinoEntity, Long> {
 

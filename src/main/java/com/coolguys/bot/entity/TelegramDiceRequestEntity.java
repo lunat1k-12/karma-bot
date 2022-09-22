@@ -21,7 +21,7 @@ import static javax.persistence.GenerationType.IDENTITY;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class TelegramDiceRequest {
+public class TelegramDiceRequestEntity {
     @Id
     @GeneratedValue(strategy = IDENTITY)
     private Long id;

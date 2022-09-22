@@ -1,12 +1,14 @@
 package com.coolguys.bot.service;
 
-import com.coolguys.bot.dto.KarmaUpdate;
+import com.coolguys.bot.dto.ChatAccount;
 import com.coolguys.bot.dto.KarmaUpdateType;
-import com.coolguys.bot.dto.UserInfo;
-import com.coolguys.bot.entity.KarmaUpdateEntity;
-import com.coolguys.bot.mapper.KarmaUpdateMapper;
-import com.coolguys.bot.mapper.UserMapper;
-import com.coolguys.bot.repository.KarmaUpdateRepository;
+import com.coolguys.bot.dto.TelegramKarmaUpdate;
+import com.coolguys.bot.entity.TelegramKarmaUpdateEntity;
+import com.coolguys.bot.mapper.ChatAccountMapper;
+import com.coolguys.bot.mapper.TelegramKarmaUpdateMapper;
+import com.coolguys.bot.mapper.TelegramUserMapper;
+import com.coolguys.bot.repository.ChatAccountRepository;
+import com.coolguys.bot.repository.TelegramKarmaUpdateRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.request.SendMessage;
@@ -25,58 +27,63 @@ public class KarmaService {
     private final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
 
     private final UserService userService;
-    private final KarmaUpdateRepository karmaUpdateRepository;
-    private final UserMapper userMapper;
-    private final KarmaUpdateMapper karmaUpdateMapper;
+    private final TelegramKarmaUpdateRepository telegramKarmaUpdateRepository;
+    private final TelegramKarmaUpdateMapper telegramKarmaUpdateMapper;
+    private final TelegramUserMapper telegramUserMapper;
+    private final ChatAccountRepository chatAccountRepository;
+    private final ChatAccountMapper chatAccountMapper;
     private final TelegramBot bot;
 
-    public void processKarmaUpdate(Message message, UserInfo originUser) {
-        UserInfo targetUser = userService.loadUser(message.replyToMessage());
+    public void processKarmaUpdate(Message message, ChatAccount originAcc) {
+        ChatAccount targetAcc = userService.loadChatAccount(message.replyToMessage());
 
         KarmaUpdateType type = KarmaUpdateType.INCREASE;
         switch (message.sticker().fileUniqueId()) {
             case UNIQ_PLUS_ID:
-                targetUser.plusCredit(20);
+                targetAcc.plusCredit(20);
                 break;
             case UNIQ_MINUS_ID:
-                targetUser.minusCredit(20);
+                targetAcc.minusCredit(20);
                 type = KarmaUpdateType.DECREASE;
                 break;
         }
 
-        if (processRecentUpdates(originUser, targetUser, type, bot, message)) {
+        if (processRecentUpdates(originAcc, targetAcc, type, bot, message)) {
             if (isLikesForLikesChain(message)) {
                 bot.execute(new SendMessage(message.chat().id(), "Це не привід карму змінювати\nНезарахованно")
                         .replyToMessageId(message.replyToMessage().messageId()));
                 return;
             }
-            KarmaUpdateEntity entity = KarmaUpdateEntity.builder()
-                    .originUserId(originUser.getId())
+            TelegramKarmaUpdateEntity entity = TelegramKarmaUpdateEntity.builder()
+                    .originUserId(originAcc.getUser().getId())
                     .type(type.getId())
-                    .targetUser(userMapper.toEntity(targetUser))
-                    .chatId(message.chat().id())
+                    .targetUser(telegramUserMapper.toEntity(targetAcc.getUser()))
+                    .chatId(originAcc.getChat().getId())
                     .date(LocalDateTime.now())
                     .build();
-            karmaUpdateRepository.save(entity);
-            userService.save(targetUser);
+
+            telegramKarmaUpdateRepository.save(entity);
+            chatAccountRepository.save(chatAccountMapper.toEntity(targetAcc));
         }
     }
+
     private boolean isLikesForLikesChain(Message message) {
         return message.replyToMessage().sticker() != null &&
                 List.of(UNIQ_PLUS_ID, UNIQ_MINUS_ID).contains(message.replyToMessage().sticker().fileUniqueId());
     }
-    private boolean processRecentUpdates(UserInfo originUser, UserInfo targetUser,
+
+    private boolean processRecentUpdates(ChatAccount originAcc, ChatAccount targetAcc,
                                          KarmaUpdateType type, TelegramBot bot,
                                          Message message) {
-        List<KarmaUpdate> updates = karmaUpdateRepository.findAllByOriginUserIdAndTargetUserAndTypeAndDateGreaterThan(originUser.getId(),
-                userMapper.toEntity(targetUser),
-                type.getId(),
-                LocalDateTime.now().minusMinutes(30)).stream()
-                .map(karmaUpdateMapper::toDto)
+        List<TelegramKarmaUpdate> updates = telegramKarmaUpdateRepository.findAllByOriginUserIdAndTargetUserAndTypeAndDateGreaterThan(originAcc.getUser().getId(),
+                        telegramUserMapper.toEntity(targetAcc.getUser()),
+                        type.getId(),
+                        LocalDateTime.now().minusMinutes(30)).stream()
+                .map(telegramKarmaUpdateMapper::toDto)
                 .collect(Collectors.toList());
 
         if (updates.size() > 0) {
-            bot.execute(new SendMessage(originUser.getChatId(), type.getMessageForDuplicate())
+            bot.execute(new SendMessage(originAcc.getChat().getId(), type.getMessageForDuplicate())
                     .replyToMessageId(message.messageId()));
             return false;
         }

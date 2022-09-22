@@ -1,15 +1,17 @@
 package com.coolguys.bot.scheduled;
 
-import com.coolguys.bot.dto.CasinoDto;
-import com.coolguys.bot.dto.GuardDepartmentDto;
-import com.coolguys.bot.dto.PoliceDepartmentDto;
-import com.coolguys.bot.dto.UserInfo;
-import com.coolguys.bot.entity.UserEntity;
+import com.coolguys.bot.dto.ChatAccount;
+import com.coolguys.bot.dto.TelegramCasino;
+import com.coolguys.bot.dto.TelegramGuardDepartment;
+import com.coolguys.bot.dto.TelegramPoliceDepartment;
+import com.coolguys.bot.dto.TelegramUser;
+import com.coolguys.bot.entity.TelegramChatEntity;
 import com.coolguys.bot.listener.MessagesListener;
-import com.coolguys.bot.mapper.ChatMessageMapper;
-import com.coolguys.bot.mapper.UserMapper;
-import com.coolguys.bot.repository.ChatMessageRepository;
-import com.coolguys.bot.repository.UserRepository;
+import com.coolguys.bot.mapper.ChatAccountMapper;
+import com.coolguys.bot.mapper.TelegramMessageMapper;
+import com.coolguys.bot.repository.ChatAccountRepository;
+import com.coolguys.bot.repository.TelegramChatRepository;
+import com.coolguys.bot.repository.TelegramMessageRepository;
 import com.coolguys.bot.service.CasinoService;
 import com.coolguys.bot.service.DrugsService;
 import com.coolguys.bot.service.GuardDepartmentService;
@@ -26,8 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static com.coolguys.bot.service.StealService.POLICE_STICKER;
@@ -40,22 +40,18 @@ public class ScheduledTasksService {
     private static final Integer PRICE = 200;
 
     private static final Integer TOP_PRICE = 100;
-
-    private final ChatMessageRepository chatMessageRepository;
-
-    private final UserRepository userRepository;
-
-    private final ChatMessageMapper chatMessageMapper;
-
     private final MessagesListener messagesListener;
-
-    private final UserMapper userMapper;
     private final DrugsService drugsService;
     private final CasinoService casinoService;
     private final StealService stealService;
     private final UserService userService;
     private final PoliceDepartmentService policeDepartmentService;
     private final GuardDepartmentService guardDepartmentService;
+    private final TelegramChatRepository telegramChatRepository;
+    private final ChatAccountRepository chatAccountRepository;
+    private final ChatAccountMapper chatAccountMapper;
+    private final TelegramMessageRepository telegramMessageRepository;
+    private final TelegramMessageMapper telegramMessageMapper;
 
     private static final String TOP_STICKER = "CAACAgIAAxkBAAIBTGMQ3leswu0305mH8dYR1BByXz_dAAJmAQACPQ3oBOMh-z8iW4cZKQQ";
 
@@ -66,65 +62,64 @@ public class ScheduledTasksService {
 
     @Scheduled(cron = "00 00 10 * * *")
     public void drugRaid() {
-        StreamSupport.stream(userRepository.findAll().spliterator(), false)
-                .map(UserEntity::getChatId)
-                .collect(Collectors.toSet())
+        StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+                .map(TelegramChatEntity::getId)
                 .forEach(this::chatDrugRaid);
     }
 
     private void chatDrugRaid(Long chatId) {
         log.info("Search for drugs in {}", chatId);
-        List<UserInfo> users = userService.findActiveByChatId(chatId);
+        List<ChatAccount> users = userService.findActiveAccByChatId(chatId);
 
         Random random = new Random();
 
         int userIndex = random.nextInt(users.size());
-        UserInfo userToCheck = users.get(userIndex);
+        ChatAccount userToCheck = users.get(userIndex);
 
-        messagesListener.sendMessage(chatId, String.format("Поліція вирішила обшукати @%s", userToCheck.getUsername()));
+        messagesListener.sendMessage(chatId, String.format("Поліція вирішила обшукати @%s", userToCheck.getUser().getUsername()));
         messagesListener.sendSticker(chatId, POLICE_CHECK_STICKER);
 
         try {
             Thread.sleep(1000);
 
             if (drugsService.findActiveDrugDeals(userToCheck).size() > 0) {
-                log.info("Drugs found in {} place", userToCheck.getUsername());
-                messagesListener.sendMessage(chatId, String.format("Поліція знайшла наркотики у @%s", userToCheck.getUsername()));
+                log.info("Drugs found in {} place", userToCheck.getUser().getUsername());
+                messagesListener.sendMessage(chatId, String.format("Поліція знайшла наркотики у @%s", userToCheck.getUser().getUsername()));
                 drugsService.discardDrugDeals(userToCheck);
 
-                CasinoDto casino = casinoService.findOrCreateCasinoByChatID(chatId);
-                PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(chatId);
-                GuardDepartmentDto gd = guardDepartmentService.findOrCreateGdByChatID(chatId);
+                TelegramCasino casino = casinoService.findOrCreateTelegramCasinoByChatID(chatId);
+                TelegramPoliceDepartment pd = policeDepartmentService.findOrCreateTelegramPdByChatID(chatId);
+                TelegramGuardDepartment gd = guardDepartmentService.findOrCreateTelegramGdByChatID(chatId);
                 if (userToCheck.getSocialCredit() >= DRUGS_FINE) {
                     messagesListener.sendMessage(chatId, String.format("@%s оштрафовано на %s кредитів",
-                            userToCheck.getUsername(), DRUGS_FINE));
+                            userToCheck.getUser().getUsername(), DRUGS_FINE));
                     policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
-                } else if (casino.getOwner() != null && userToCheck.getId().equals(casino.getOwner().getId())) {
+                } else if (casino.getOwner() != null && userToCheck.getUser().getId().equals(casino.getOwner().getId())) {
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
-                                    "@%s втрачає казино", userToCheck.getUsername()));
+                                    "@%s втрачає казино", userToCheck.getUser().getUsername()));
                     policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     casinoService.dropCasinoOwner(chatId);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
-                } else if (pd.getOwner() != null && userToCheck.getId().equals(pd.getOwner().getId())) {
+                } else if (pd.getOwner() != null && userToCheck.getUser().getId().equals(pd.getOwner().getId())) {
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
-                                    "@%s втрачає поліцейську ділянку", userToCheck.getUsername()));
+                                    "@%s втрачає поліцейську ділянку", userToCheck.getUser().getUsername()));
                     policeDepartmentService.dropPdOwner(chatId);
                     policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
-                } else if (gd.getOwner() != null && userToCheck.getId().equals(gd.getOwner().getId())) {
+                } else if (gd.getOwner() != null && userToCheck.getUser().getId().equals(gd.getOwner().getId())) {
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
-                                    "@%s втрачає охороне агенство", userToCheck.getUsername()));
+                                    "@%s втрачає охороне агенство", userToCheck.getUser().getUsername()));
                     guardDepartmentService.dropGuardOwner(chatId);
                     policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 } else {
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
-                                    "@%s потрапив у в'язницю", userToCheck.getUsername()));
+                                    "@%s потрапив у в'язницю", userToCheck.getUser().getUsername()));
                     policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     stealService.sendToJail(userToCheck);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
@@ -140,19 +135,13 @@ public class ScheduledTasksService {
 
     @Scheduled(cron = "00 00 07 * * *")
     public void getTopAndWorstUser() {
-        StreamSupport.stream(userRepository.findAll().spliterator(), false)
-                .map(UserEntity::getChatId)
-                .collect(Collectors.toSet())
+        StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+                .map(TelegramChatEntity::getId)
                 .forEach(this::getTopAndWorstUser);
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            log.error("getTopAndWorstUser - Exception while sleep");
-        }
     }
 
     private void getTopAndWorstUser(Long chatId) {
-        List<UserInfo> users = userService.findActiveByChatId(chatId);
+        List<ChatAccount> users = userService.findActiveAccByChatId(chatId);
 
         Random random = new Random();
 
@@ -162,53 +151,49 @@ public class ScheduledTasksService {
             bottomIndex = random.nextInt(users.size());
         } while (bottomIndex == topIndex);
 
-        log.info("Top user - {}, chatId: {}", users.get(topIndex).getUsername(), chatId);
-        log.info("Bottom user - {}, chatId: {}", users.get(bottomIndex).getUsername(), chatId);
+        log.info("Top user - {}, chatId: {}", users.get(topIndex).getUser().getUsername(), chatId);
+        log.info("Bottom user - {}, chatId: {}", users.get(bottomIndex).getUser().getUsername(), chatId);
 
         messagesListener.sendMessage(chatId, String.format("Шановне Панство, Увага!\nТоп хлопак на сьогодні: @%s\n" +
-                "він отримує %s кредитів", users.get(topIndex).getUsername(), TOP_PRICE));
+                "він отримує %s кредитів", users.get(topIndex).getUser().getUsername(), TOP_PRICE));
         messagesListener.sendSticker(chatId, TOP_STICKER);
-        messagesListener.sendMessage(chatId, String.format("І на самому дні нас сьогодні чекає @%s", users.get(bottomIndex).getUsername()));
+        messagesListener.sendMessage(chatId,
+                String.format("І на самому дні нас сьогодні чекає @%s", users.get(bottomIndex).getUser().getUsername()));
         messagesListener.sendSticker(chatId, BOTTOM_STICKER);
-        UserInfo topUser = users.get(topIndex);
+        ChatAccount topUser = users.get(topIndex);
         topUser.plusCredit(TOP_PRICE);
-        userRepository.save(userMapper.toEntity(topUser));
+        chatAccountRepository.save(chatAccountMapper.toEntity(topUser));
     }
 
     @Scheduled(cron = "00 00 08 * * MON")
     public void processMostActiveUser() {
-        Set<Long> chatIds = StreamSupport.stream(userRepository.findAll().spliterator(), false)
-                .map(UserEntity::getChatId)
-                .collect(Collectors.toSet());
-
-        chatIds.forEach(this::processChatMostActiveUser);
-
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            log.error("processMostActiveUser - Exception while sleep");
-        }
+        StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+                .map(TelegramChatEntity::getId)
+                .forEach(this::processChatMostActiveUser);
     }
 
     private void processChatMostActiveUser(Long chatId) {
-        Map<UserInfo, Integer> messageCount = new HashMap<>();
-        chatMessageRepository.findAllByDateGreaterThanAndChatId(LocalDateTime.now().minusWeeks(7L), chatId)
+        Map<TelegramUser, Integer> messageCount = new HashMap<>();
+        telegramMessageRepository.findAllByDateGreaterThanAndChatId(LocalDateTime.now().minusWeeks(7L), chatId)
                 .stream()
-                .map(chatMessageMapper::toDto)
+                .map(telegramMessageMapper::toDto)
                 .forEach(u -> messageCount.merge(u.getUser(), 1, Integer::sum));
 
-        UserInfo topMessagesUser = null;
+        TelegramUser topMessagesUser = null;
         int maxValue = 0;
-        for (UserInfo userInfo : messageCount.keySet()) {
-            if (messageCount.get(userInfo) > maxValue) {
-                maxValue = messageCount.get(userInfo);
-                topMessagesUser = userInfo;
+        for (TelegramUser user : messageCount.keySet()) {
+            if (messageCount.get(user) > maxValue) {
+                maxValue = messageCount.get(user);
+                topMessagesUser = user;
             }
         }
 
         if (topMessagesUser != null) {
-            topMessagesUser.setSocialCredit(topMessagesUser.getSocialCredit() + PRICE);
-            userRepository.save(userMapper.toEntity(topMessagesUser));
+            ChatAccount topAcc = chatAccountRepository.findByUserIdAndChatId(topMessagesUser.getId(), chatId)
+                    .map(chatAccountMapper::toDto)
+                    .orElseThrow();
+            topAcc.plusCredit(PRICE);
+            chatAccountRepository.save(chatAccountMapper.toEntity(topAcc));
             log.info("Top messages User: {}", topMessagesUser.getUsername());
 
             String topUserMessage = String.format("Шановне Панство!\nНайактивнішим в чаті за цю неділю був - %s" +

@@ -8,6 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Deprecated
 @Repository
 public interface DiceRequestRepository extends CrudRepository<DiceRequestEntity, Long> {
     List<DiceRequestEntity> findAllByUserAndChatIdAndDateGreaterThan(UserEntity user, Long chatId, LocalDateTime date);

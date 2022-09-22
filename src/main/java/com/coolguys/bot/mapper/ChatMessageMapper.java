@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Deprecated
 public class ChatMessageMapper implements EntityToDtoMapper<ChatMessageEntity, ChatMessage> {
 
     private final UserMapper userMapper;

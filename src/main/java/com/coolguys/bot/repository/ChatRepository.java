@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Deprecated
 @Repository
 public interface ChatRepository extends CrudRepository<ChatEntity, Long> {
     Optional<ChatEntity> findByTelegramId(Long telegramId);

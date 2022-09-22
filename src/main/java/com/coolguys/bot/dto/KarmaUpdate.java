@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
+@Deprecated
 public class KarmaUpdate {
 
     private Long id;

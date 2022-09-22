@@ -5,6 +5,7 @@ import com.coolguys.bot.dto.UserStatus;
 import com.coolguys.bot.entity.UserEntity;
 import org.springframework.stereotype.Component;
 
+@Deprecated
 @Component
 public class UserMapper implements EntityToDtoMapper<UserEntity, UserInfo> {
 

@@ -25,8 +25,8 @@ public class TelegramOrderEntity {
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
 
-    @Column(name = "user_id")
-    private Long originUserId;
+    @Column(name = "acc_id")
+    private Long originAccId;
 
     @Column(name = "type")
     private String type;
@@ -47,6 +47,6 @@ public class TelegramOrderEntity {
     private String respondMessage;
 
     @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "target_user_id", referencedColumnName = "id")
-    private TelegramUserEntity targetUser;
+    @JoinColumn(name = "target_acc_id", referencedColumnName = "id")
+    private ChatAccountEntity targetAcc;
 }

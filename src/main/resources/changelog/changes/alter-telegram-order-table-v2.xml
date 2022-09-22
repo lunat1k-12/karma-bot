@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="revision-1" author="evgen.chemeris">
+        <dropForeignKeyConstraint baseTableName="telegram_order_request" constraintName="fk_telegram_order_target"/>
+        <renameColumn tableName="telegram_order_request" oldColumnName="target_user_id" newColumnName="target_acc_id"/>
+        <sql>
+            update telegram_order_request set target_acc_id = subquery.id
+                from (select ch.id, ch.user_id, ch.chat_id from chat_account ch) subquery
+            where telegram_order_request.target_acc_id = subquery.user_id and telegram_order_request.chat_id = subquery.chat_id;
+        </sql>
+        <modifyDataType tableName="telegram_order_request" columnName="target_acc_id" newDataType="INTEGER"/>
+        <addForeignKeyConstraint baseTableName="telegram_order_request"
+                                 baseColumnNames="target_acc_id"
+                                 constraintName="fk_telegram_order_target_acc"
+                                 referencedTableName="chat_account"
+                                 referencedColumnNames="id" />
+    </changeSet>
+</databaseChangeLog>

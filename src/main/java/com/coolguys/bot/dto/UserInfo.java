@@ -8,6 +8,7 @@ import lombok.EqualsAndHashCode;
 @Data
 @Builder
 @EqualsAndHashCode
+@Deprecated
 public class UserInfo {
     private Long id;
     private String username;

@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
+@Deprecated
 public class PoliceDepartmentDto {
     private Long id;
     private UserInfo owner;

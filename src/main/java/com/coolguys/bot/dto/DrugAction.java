@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
+@Deprecated
 public class DrugAction {
     private Long id;
     private UserInfo user;

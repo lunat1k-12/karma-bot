@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 @Builder
+@Deprecated
 public class CasinoDto {
     private Long id;
     private UserInfo owner;

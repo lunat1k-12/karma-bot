@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Deprecated
 @Repository
 public interface ChatMessageRepository extends CrudRepository<ChatMessageEntity, Long> {
 

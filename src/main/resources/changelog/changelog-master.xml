@@ -44,4 +44,6 @@
     <include file="/changelog/changes/create-telegram-guard-table.xml"/>
     <include file="/changelog/changes/create-telegram-order-table.xml"/>
     <include file="/changelog/changes/create-telegram-police-department-table.xml"/>
+    <include file="/changelog/changes/alter-telegram-order-table.xml"/>
+    <include file="/changelog/changes/alter-telegram-order-table-v2.xml"/>
 </databaseChangeLog>
