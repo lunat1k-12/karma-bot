@@ -1,14 +1,10 @@
 package com.coolguys.bot.service;
 
 import com.coolguys.bot.dto.ChatAccount;
-import com.coolguys.bot.dto.UserInfo;
-import com.coolguys.bot.entity.GuardEntity;
 import com.coolguys.bot.entity.TelegramGuardEntity;
 import com.coolguys.bot.mapper.ChatAccountMapper;
 import com.coolguys.bot.mapper.TelegramUserMapper;
-import com.coolguys.bot.mapper.UserMapper;
 import com.coolguys.bot.repository.ChatAccountRepository;
-import com.coolguys.bot.repository.GuardRepository;
 import com.coolguys.bot.repository.TelegramBanRecordRepository;
 import com.coolguys.bot.repository.TelegramGuardRepository;
 import com.pengrad.telegrambot.TelegramBot;
@@ -25,8 +21,6 @@ import java.util.Comparator;
 public class GuardService {
 
     public static final int GUARD_PRICE = 200;
-    private final GuardRepository guardRepository;
-    private final UserMapper userMapper;
     private final TelegramBot bot;
     private final GuardDepartmentService guardDepartmentService;
     private final TelegramGuardRepository telegramGuardRepository;
@@ -69,12 +63,6 @@ public class GuardService {
                 targetAccount.getChat().getId(), LocalDateTime.now()).isEmpty();
     }
 
-    @Deprecated
-    public boolean doesHaveGuard(UserInfo targetUser) {
-        return !guardRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(targetUser),
-                targetUser.getChatId(), LocalDateTime.now()).isEmpty();
-    }
-
     public String getGuardTillLabel(ChatAccount targetAcc) {
         return telegramGuardRepository.findByUserAndChatIdAndExpiresAfter(telegramUserMapper.toEntity(targetAcc.getUser()),
                         targetAcc.getChat().getId(), LocalDateTime.now()).stream()
@@ -84,21 +72,7 @@ public class GuardService {
                 .orElse(null);
     }
 
-    public String getGuardTillLabel(UserInfo targetUser) {
-        return guardRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(targetUser),
-                        targetUser.getChatId(), LocalDateTime.now()).stream()
-                .max(Comparator.comparing(GuardEntity::getExpires))
-                .map(GuardEntity::getExpires)
-                .map(DateConverter::localDateTimeToStringLabel)
-                .orElse(null);
-    }
-
     @Transactional
-    @Deprecated
-    public void deleteGuard(UserInfo originUser) {
-        guardRepository.deleteByUser(userMapper.toEntity(originUser));
-    }
-
     public void deleteGuard(ChatAccount originAcc) {
         telegramGuardRepository.deleteByUserAndChatId(telegramUserMapper.toEntity(originAcc.getUser()), originAcc.getChat().getId());
     }

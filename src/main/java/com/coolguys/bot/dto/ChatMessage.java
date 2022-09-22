@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
+@Deprecated
 public class ChatMessage {
 
     private Long id;

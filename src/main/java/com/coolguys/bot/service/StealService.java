@@ -1,28 +1,20 @@
 package com.coolguys.bot.service;
 
-import com.coolguys.bot.dto.CasinoDto;
 import com.coolguys.bot.dto.ChatAccount;
-import com.coolguys.bot.dto.GuardDepartmentDto;
 import com.coolguys.bot.dto.OrderType;
-import com.coolguys.bot.dto.PoliceDepartmentDto;
 import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.ReplyOrderStage;
 import com.coolguys.bot.dto.TelegramCasino;
 import com.coolguys.bot.dto.TelegramGuardDepartment;
 import com.coolguys.bot.dto.TelegramOrder;
 import com.coolguys.bot.dto.TelegramPoliceDepartment;
-import com.coolguys.bot.dto.UserInfo;
 import com.coolguys.bot.dto.UserStatus;
-import com.coolguys.bot.entity.BanRecordEntity;
 import com.coolguys.bot.entity.ChatAccountEntity;
 import com.coolguys.bot.entity.TelegramBanRecordEntity;
 import com.coolguys.bot.mapper.ChatAccountMapper;
 import com.coolguys.bot.mapper.TelegramOrderMapper;
 import com.coolguys.bot.mapper.TelegramUserMapper;
-import com.coolguys.bot.mapper.UserMapper;
-import com.coolguys.bot.repository.BanRecordRepository;
 import com.coolguys.bot.repository.ChatAccountRepository;
-import com.coolguys.bot.repository.OrderRepository;
 import com.coolguys.bot.repository.TelegramBanRecordRepository;
 import com.coolguys.bot.repository.TelegramOrderRepository;
 import com.pengrad.telegrambot.TelegramBot;
@@ -46,11 +38,7 @@ import java.util.concurrent.Executors;
 @RequiredArgsConstructor
 @Slf4j
 public class StealService {
-
-    private final BanRecordRepository banRecordRepository;
-    private final UserMapper userMapper;
     private final KeyboardService keyboardService;
-    private final OrderRepository orderRepository;
     private final TelegramOrderRepository telegramOrderRepository;
     private final TelegramOrderMapper telegramOrderMapper;
     private final GuardService guardService;
@@ -153,7 +141,7 @@ public class StealService {
             if (targetAcc.getSocialCredit() <= 0) {
                 bot.execute(new SendMessage(originAcc.getChat().getId(), String.format("Що ти хотів вкрасти у @%s? він бесхатько!",
                         targetAcc.getUser().getUsername())));
-                orderRepository.deleteById(order.getId());
+                telegramOrderRepository.deleteById(order.getId());
                 return;
             }
 
@@ -209,12 +197,6 @@ public class StealService {
         }
     }
 
-    @Deprecated
-    public boolean isInJail(UserInfo user) {
-        return !banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(user),
-                user.getChatId(), LocalDateTime.now()).isEmpty();
-    }
-
     public boolean isInJail(ChatAccount acc) {
         return !telegramBanRecordRepository.findByUserAndChatIdAndExpiresAfter(telegramUserMapper.toEntity(acc.getUser()),
                 acc.getChat().getId(), LocalDateTime.now()).isEmpty();
@@ -225,15 +207,6 @@ public class StealService {
                 acc.getChat().getId(), LocalDateTime.now()).stream()
                 .max(Comparator.comparing(TelegramBanRecordEntity::getExpires))
                 .map(TelegramBanRecordEntity::getExpires)
-                .map(DateConverter::localDateTimeToStringLabel)
-                .orElse(null);
-    }
-
-    public String getJailTillLabel(UserInfo user) {
-        return banRecordRepository.findByUserAndChatIdAndExpiresAfter(userMapper.toEntity(user),
-                user.getChatId(), LocalDateTime.now()).stream()
-                .max(Comparator.comparing(BanRecordEntity::getExpires))
-                .map(BanRecordEntity::getExpires)
                 .map(DateConverter::localDateTimeToStringLabel)
                 .orElse(null);
     }
@@ -273,58 +246,12 @@ public class StealService {
                 .build());
     }
 
-    @Deprecated
-    private void busted(UserInfo originUser) {
-        CasinoDto casino = casinoService.findOrCreateCasinoByChatID(originUser.getChatId());
-        PoliceDepartmentDto pd = policeDepartmentService.findOrCreatePdByChatID(originUser.getChatId());
-        GuardDepartmentDto gd = guardDepartmentService.findOrCreateGdByChatID(originUser.getChatId());
-
-        if (originUser.getSocialCredit() < FEE) {
-            if (casino.getOwner() != null && originUser.getId().equals(casino.getOwner().getId())) {
-                casinoService.dropCasinoOwner(originUser.getChatId());
-                bot.execute(new SendMessage(originUser.getChatId(),
-                        String.format("@%s ти більше не власник казино", originUser.getUsername())));
-                log.info("Casino owner removed");
-            }
-            if (pd.getOwner() != null && originUser.getId().equals(pd.getOwner().getId())) {
-                policeDepartmentService.dropPdOwner(originUser.getChatId());
-                bot.execute(new SendMessage(originUser.getChatId(),
-                        String.format("@%s ти більше не власник поліцейської ділянки", originUser.getUsername())));
-                log.info("PD owner removed");
-            }
-            if (gd.getOwner() != null && originUser.getId().equals(gd.getOwner().getId())) {
-                guardDepartmentService.dropGuardOwner(originUser.getChatId());
-                bot.execute(new SendMessage(originUser.getChatId(),
-                        String.format("@%s ти більше не власник охороного агенства", originUser.getUsername())));
-                log.info("GD owner removed");
-            }
-        }
-
-        policeDepartmentService.processFine(originUser, FEE);
-        guardService.deleteGuard(originUser);
-        banRecordRepository.save(BanRecordEntity.builder()
-                .user(userMapper.toEntity(originUser))
-                .expires(LocalDateTime.now().plusHours(JAIL_TIME))
-                .chatId(originUser.getChatId())
-                .build());
-    }
-
     public void sendToJail(ChatAccount originAcc) {
         guardService.deleteGuard(originAcc);
         telegramBanRecordRepository.save(TelegramBanRecordEntity.builder()
                 .user(telegramUserMapper.toEntity(originAcc.getUser()))
                 .expires(LocalDateTime.now().plusHours(JAIL_TIME))
                 .chatId(originAcc.getChat().getId())
-                .build());
-    }
-
-    @Deprecated
-    public void sendToJail(UserInfo originUser) {
-        guardService.deleteGuard(originUser);
-        banRecordRepository.save(BanRecordEntity.builder()
-                .user(userMapper.toEntity(originUser))
-                .expires(LocalDateTime.now().plusHours(JAIL_TIME))
-                .chatId(originUser.getChatId())
                 .build());
     }
 
