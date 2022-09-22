@@ -27,6 +27,7 @@ import com.google.gson.Gson;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.CallbackQuery;
+import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.ChatMemberUpdated;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
@@ -131,7 +132,12 @@ public class MessagesListener implements UpdatesListener {
                 updateChatMember(update.myChatMember());
             }
             if (update.message() != null) {
-                processMessage(update.message());
+                if (Chat.Type.Private.equals(update.message().chat().type())) {
+                    log.info("Private message from: {}", update.message().from());
+                    bot.execute(new SendMessage(update.message().chat().id(), "Додай мене до чату і надай права адміна для того щоб почати гру."));
+                } else {
+                    processMessage(update.message());
+                }
             }
             if (update.callbackQuery() != null) {
                 CallbackQuery query = update.callbackQuery();
