@@ -39,8 +39,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import static com.coolguys.bot.dto.QueryDataDto.DROP_DRUGS_TYPE;
@@ -65,6 +69,7 @@ public class MessagesListener implements UpdatesListener {
     private final ChatAccountRepository chatAccountRepository;
     private final ChatAccountMapper chatAccountMapper;
     private final TelegramChatRepository telegramChatRepository;
+    private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
@@ -110,6 +115,14 @@ public class MessagesListener implements UpdatesListener {
         bot.execute(new SendSticker(chatId, stickerId));
     }
 
+    private void executeAction(Long chatId, Runnable command) {
+        if (chatExecutors.get(chatId) == null) {
+            chatExecutors.put(chatId, Executors.newSingleThreadExecutor());
+        }
+
+        chatExecutors.get(chatId).execute(command);
+    }
+
     @Override
     public int process(List<Update> updates) {
         log.info("income: {}", updates);
@@ -129,16 +142,19 @@ public class MessagesListener implements UpdatesListener {
                 switch (dto.getType()) {
                     case REPLY_ORDER_TYPE:
                         log.info("Reply order query");
-                        orderService.checkOrders(query.message().chat().id(), originAcc,
-                                dto.getOption(), -1, OrderService.Income.DATA);
+                        executeAction(query.message().chat().id(),
+                                () -> orderService.checkOrders(query.message().chat().id(), originAcc,
+                                        dto.getOption(), -1, OrderService.Income.DATA));
                         break;
                     case STEAL_TYPE:
                         log.info("Steal query");
-                        stealService.processPerChatAsyncSteal(originAcc, dto);
+                        executeAction(originAcc.getChat().getId(),
+                                () -> stealService.processSteal(originAcc, dto));
                         break;
                     case DROP_DRUGS_TYPE:
                         log.info("Drop drugs query");
-                        drugsService.processDropDrug(originAcc, dto);
+                        executeAction(originAcc.getChat().getId(),
+                                () -> drugsService.processDropDrug(originAcc, dto));
                         break;
                 }
             }
@@ -165,53 +181,73 @@ public class MessagesListener implements UpdatesListener {
         ChatAccount originAccount = userService.loadChatAccount(message);
         if (message.leftChatMember() != null) {
             log.info("Deactivate user");
-            userService.deactivateChatAccount(message.leftChatMember().id(), message.chat().id());
+            executeAction(message.chat().id(),
+                    () -> userService.deactivateChatAccount(message.leftChatMember().id(), message.chat().id()));
         } else if (isValidForCreditsCount(message)) {
             log.info("Process karma update");
-            karmaService.processKarmaUpdate(message, originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> karmaService.processKarmaUpdate(message, originAccount));
         } else if (message.text() != null && botConfig.getCreditCommand().equals(message.text())) {
             log.info("Print Credits");
-            printCredits(message);
+            executeAction(message.chat().id(), () -> printCredits(message));
         } else if (message.text() != null && botConfig.getAutoReplyCommand().equals(message.text())) {
             log.info("Create auto-reply");
-            orderService.createReplyOrder(originAccount);
-            bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
+            executeAction(originAccount.getChat().getId(),
+                    () -> {
+                        orderService.createReplyOrder(originAccount);
+                        bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
+                    });
         } else if (message.text() != null && botConfig.getRemovePlayBanCommand().equals(message.text())) {
             log.info("remove play ban command");
-            diceService.removePlayBan(originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> diceService.removePlayBan(originAccount));
         } else if (message.text() != null && botConfig.getStealCommand().equals(message.text())) {
             log.info("New steal command");
-            stealService.stealRequest(originAccount);
-            bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
+            executeAction(message.chat().id(),
+                    () -> {
+                        stealService.stealRequest(originAccount);
+                        bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
+                    });
         } else if (message.text() != null && botConfig.getBuyGuardCommand().equals(message.text())) {
             log.info("Buy guard request");
-            guardService.buyGuard(originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> guardService.buyGuard(originAccount));
         } else if (message.text() != null && botConfig.getBuyCasinoCommand().equals(message.text())) {
             log.info("Buy Casino request");
-            processCasinoBuy(originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> processCasinoBuy(originAccount));
         } else if (message.text() != null && botConfig.getDoDrugsCommand().equals(message.text())) {
             log.info("Do drugs request for {}", originAccount.getUser().getUsername());
-            drugsService.doDrugs(originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> drugsService.doDrugs(originAccount));
         } else if (message.text() != null && botConfig.getDropDrugsCommand().equals(message.text())) {
             log.info("Drop drugs request from {}", originAccount.getUser().getUsername());
-            drugsService.dropDrugsRequest(originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> drugsService.dropDrugsRequest(originAccount));
         } else if (message.text() != null && botConfig.getBuyPoliceCommand().equals(message.text())) {
             log.info("Buy police department request");
-            processPdBuy(originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> processPdBuy(originAccount));
         } else if (message.text() != null && botConfig.getMyStatsCommand().equals(message.text())) {
             log.info("Print personal stats request");
-            printPersonalStats(originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> printPersonalStats(originAccount));
         } else if (message.text() != null && botConfig.getBuyGuardDepartmentCommand().equals(message.text())) {
             log.info("Buy Guard department request");
-            processGdBuy(originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> processGdBuy(originAccount));
         } else if (message.dice() != null) {
             log.info("Process dice");
-            diceService.processDice(message, originAccount);
+            executeAction(originAccount.getChat().getId(),
+                    () -> diceService.processDice(message, originAccount));
         } else if (message.text() != null) {
             log.info("Process text");
-            messagesService.saveMessage(originAccount, message);
-            orderService.checkOrders(message.chat().id(), originAccount, message.text().trim(),
-                    message.messageId(), OrderService.Income.TEXT);
+            executeAction(originAccount.getChat().getId(),
+                    () -> {
+                        messagesService.saveMessage(originAccount, message);
+                        orderService.checkOrders(message.chat().id(), originAccount, message.text().trim(),
+                                message.messageId(), OrderService.Income.TEXT);
+                    });
         }
 
     }

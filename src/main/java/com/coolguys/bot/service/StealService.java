@@ -28,11 +28,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,8 +46,6 @@ public class StealService {
     private final ChatAccountMapper chatAccountMapper;
     private final TelegramBanRecordRepository telegramBanRecordRepository;
     private final TelegramUserMapper telegramUserMapper;
-
-    private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
     public static final int PAUSE_MILLIS = 3000;
     public static final int STEAL_BORDER = 1000;
 
@@ -102,15 +96,6 @@ public class StealService {
         bot.execute(new SendMessage(originAcc.getChat().getId(), "Обери кого хочеш обокрасти:")
                 .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(originAcc.getChat().getId(), originAcc.getId(), QueryDataDto.STEAL_TYPE)));
         log.info("Steal request created");
-    }
-
-    public void processPerChatAsyncSteal(ChatAccount originAcc, QueryDataDto query) {
-        if (chatExecutors.get(originAcc.getChat().getId()) == null) {
-            chatExecutors.put(originAcc.getChat().getId(), Executors.newSingleThreadExecutor());
-        }
-
-        chatExecutors.get(originAcc.getChat().getId())
-                .execute(() -> processSteal(originAcc, query));
     }
 
     public void processSteal(ChatAccount originAcc, QueryDataDto query) {
