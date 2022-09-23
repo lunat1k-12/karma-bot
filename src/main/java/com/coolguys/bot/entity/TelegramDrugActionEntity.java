@@ -26,7 +26,7 @@ public class TelegramDrugActionEntity {
     @GeneratedValue(strategy = IDENTITY)
     private Long id;
 
-    @OneToOne(cascade = CascadeType.MERGE)
+    @OneToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private TelegramUserEntity user;
 
