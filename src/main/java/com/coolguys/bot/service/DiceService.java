@@ -19,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -63,10 +65,19 @@ public class DiceService {
 
     public void processDice(Message message, ChatAccount originAcc) {
 
-        if (telegramDiceRequestRepository.findAllByUserAndChatIdAndDateGreaterThan(telegramUserMapper.toEntity(originAcc.getUser()),
+        List<TelegramDiceRequestEntity> diceRequests = telegramDiceRequestRepository.findAllByUserAndChatIdAndDateGreaterThan(telegramUserMapper.toEntity(originAcc.getUser()),
                 message.chat().id(),
-                LocalDateTime.now().minusHours(3L)).size() >= 3) {
-            bot.execute(new SendMessage(message.chat().id(), "Відпочинь лудоман."));
+                LocalDateTime.now().minusHours(3L));
+
+        if (diceRequests.size() >= 3) {
+            LocalDateTime lastExpire = diceRequests.stream()
+                    .min(Comparator.comparing(TelegramDiceRequestEntity::getDate))
+                    .map(TelegramDiceRequestEntity::getDate)
+                    .orElse(null);
+
+            long minutes = ChronoUnit.MINUTES.between(LocalDateTime.now(), lastExpire.plusHours(3L));
+            bot.execute(new SendMessage(message.chat().id(),
+                    String.format("Відпочинь лудоман.\nможна бути грати через %s хвилин", minutes)));
             return;
         }
 

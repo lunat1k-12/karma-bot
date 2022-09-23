@@ -71,6 +71,10 @@ public class ScheduledTasksService {
         log.info("Search for drugs in {}", chatId);
         List<ChatAccount> users = userService.findActiveAccByChatId(chatId);
 
+        if (users.isEmpty()) {
+            return;
+        }
+
         Random random = new Random();
 
         int userIndex = random.nextInt(users.size());
@@ -143,6 +147,10 @@ public class ScheduledTasksService {
     private void getTopAndWorstUser(Long chatId) {
         List<ChatAccount> users = userService.findActiveAccByChatId(chatId);
 
+        if (users.isEmpty()) {
+            return;
+        }
+
         Random random = new Random();
 
         int topIndex = random.nextInt(users.size());
@@ -196,7 +204,7 @@ public class ScheduledTasksService {
             chatAccountRepository.save(chatAccountMapper.toEntity(topAcc));
             log.info("Top messages User: {}", topMessagesUser.getUsername());
 
-            String topUserMessage = String.format("Шановне Панство!\nНайактивнішим в чаті за цю неділю був - %s" +
+            String topUserMessage = String.format("Шановне Панство!\nНайактивнішим в чаті за цю неділю був - @%s" +
                     "\n %s кредитів цьому господину", topMessagesUser.getUsername(), PRICE);
             messagesListener.sendMessage(chatId, topUserMessage);
         } else {
