@@ -128,7 +128,7 @@ public class MessagesListener implements UpdatesListener {
     public int process(List<Update> updates) {
         log.info("income: {}", updates);
         updates.forEach(update -> {
-            if (update.myChatMember() != null) {
+            if (update.myChatMember() != null && !Chat.Type.Private.equals(update.myChatMember().chat().type())) {
                 updateChatMember(update.myChatMember());
             }
             if (update.message() != null) {
