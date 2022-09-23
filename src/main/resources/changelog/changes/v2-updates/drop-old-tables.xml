@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="revision-1" author="evgen.chemeris">
+        <dropTable tableName="ban_record"/>
+        <dropTable tableName="casino"/>
+        <dropTable tableName="chats"/>
+        <dropTable tableName="chat_message"/>
+        <dropTable tableName="dice_request"/>
+        <dropTable tableName="drug_action"/>
+        <dropTable tableName="guard_department"/>
+        <dropTable tableName="guard"/>
+        <dropTable tableName="karma_update"/>
+        <dropTable tableName="order_request"/>
+        <dropTable tableName="police_department"/>
+        <dropTable tableName="user_info"/>
+    </changeSet>
+</databaseChangeLog>

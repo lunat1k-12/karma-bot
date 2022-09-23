@@ -49,4 +49,8 @@ public class TelegramOrderEntity {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "target_acc_id", referencedColumnName = "id")
     private ChatAccountEntity targetAcc;
+
+    @OneToOne
+    @JoinColumn(name = "drug_action_id", referencedColumnName = "id")
+    private TelegramDrugActionEntity drugAction;
 }

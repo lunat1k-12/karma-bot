@@ -17,4 +17,5 @@ public class TelegramOrder {
     private Long currentIteration;
     private String respondMessage;
     private ChatAccount targetAcc;
+    private TelegramDrugAction drugAction;
 }

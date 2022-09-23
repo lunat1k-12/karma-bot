@@ -13,6 +13,9 @@ public class TelegramDrugActionMapper implements EntityToDtoMapper<TelegramDrugA
 
     @Override
     public TelegramDrugAction toDto(TelegramDrugActionEntity entity) {
+        if (entity == null) {
+            return null;
+        }
         return TelegramDrugAction.builder()
                 .user(telegramUserMapper.toDto(entity.getUser()))
                 .id(entity.getId())
@@ -23,6 +26,9 @@ public class TelegramDrugActionMapper implements EntityToDtoMapper<TelegramDrugA
 
     @Override
     public TelegramDrugActionEntity toEntity(TelegramDrugAction dto) {
+        if (dto == null) {
+            return null;
+        }
         return TelegramDrugActionEntity.builder()
                 .chatId(dto.getChatId())
                 .expires(dto.getExpires())

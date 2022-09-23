@@ -19,8 +19,10 @@ import com.pengrad.telegrambot.request.SendMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -65,8 +67,14 @@ public class DrugsService {
                 bot.execute(new SendMessage(acc.getChat().getId(), "Ти вже створив замовлення\nОбери кому хочеш підкинути наркотики:")
                         .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(acc.getChat().getId(), acc.getId(), QueryDataDto.DROP_DRUGS_TYPE)));
                 return;
-            } else if (!findActiveDrugDeals(order.getTargetAcc()).isEmpty()) {
-                bot.execute(new SendMessage(acc.getChat().getId(), "Не зараз.\nОстання справа ще закінчилась"));
+            } else if (order.getDrugAction() != null && order.getDrugAction().getExpires().isAfter(LocalDateTime.now())) {
+                long diff = ChronoUnit.MINUTES.between(LocalDateTime.now(), order.getDrugAction().getExpires());
+                double hoursDiff = Math.floor(diff / 60d);
+
+                bot.execute(new SendMessage(acc.getChat().getId(),
+                        String.format("Не зараз.\nОстання справа ще закінчилась\nСпробуй через %s годин(и) і %s хвилин(и)",
+                                hoursDiff,
+                                diff - (hoursDiff * 60))));
                 return;
             }
         }
@@ -87,6 +95,7 @@ public class DrugsService {
         log.info("Drop drug request created");
     }
 
+    @Transactional
     public void processDropDrug(ChatAccount originAcc, QueryDataDto query) {
         TelegramOrder order = telegramOrderRepository.findAllByChatIdAndStageAndOriginAccIdAndType(originAcc.getChat().getId(),
                         ReplyOrderStage.TARGET_REQUIRED.getId(),
@@ -114,13 +123,15 @@ public class DrugsService {
                 .map(chatAccountMapper::toDto)
                 .orElseThrow();
         order.setTargetAcc(targetAcc);
-        telegramOrderRepository.save(telegramOrderMapper.toEntity(order));
 
-        telegramDrugActionRepository.save(TelegramDrugActionEntity.builder()
+        var drugAction = telegramDrugActionRepository.save(TelegramDrugActionEntity.builder()
                 .user(telegramUserMapper.toEntity(targetAcc.getUser()))
                 .expires(LocalDateTime.now().plusHours(24))
                 .chatId(targetAcc.getChat().getId())
                 .build());
+
+        order.setDrugAction(telegramDrugActionMapper.toDto(drugAction));
+        telegramOrderRepository.save(telegramOrderMapper.toEntity(order));
 
         bot.execute(new SendMessage(originAcc.getChat().getId(), "Наркотики підкинуто"));
     }

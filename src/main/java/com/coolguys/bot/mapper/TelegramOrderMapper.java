@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 public class TelegramOrderMapper implements EntityToDtoMapper<TelegramOrderEntity, TelegramOrder> {
 
     private final ChatAccountMapper chatAccountMapper;
+    private final TelegramDrugActionMapper telegramDrugActionMapper;
 
     @Override
     public TelegramOrder toDto(TelegramOrderEntity entity) {
@@ -25,6 +26,7 @@ public class TelegramOrderMapper implements EntityToDtoMapper<TelegramOrderEntit
                 .respondMessage(entity.getRespondMessage())
                 .stage(ReplyOrderStage.getById(entity.getStage()))
                 .type(OrderType.getById(entity.getType()))
+                .drugAction(telegramDrugActionMapper.toDto(entity.getDrugAction()))
                 .build();
     }
 
@@ -40,6 +42,7 @@ public class TelegramOrderMapper implements EntityToDtoMapper<TelegramOrderEntit
                 .currentIteration(dto.getCurrentIteration())
                 .chatId(dto.getChatId())
                 .id(dto.getId())
+                .drugAction(telegramDrugActionMapper.toEntity(dto.getDrugAction()))
                 .build();
     }
 }
