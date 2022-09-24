@@ -75,14 +75,18 @@ public class UserService {
         return chatAccountMapper.toDto(acc);
     }
 
+    public TelegramUserEntity createNewUser(User from) {
+        return telegramUserRepository.save(TelegramUserEntity.builder()
+                .username(getOriginUsername(from))
+                .lastName(from.lastName())
+                .firstName(from.firstName())
+                .id(from.id())
+                .build());
+    }
+
     private ChatAccountEntity createNewAccount(CallbackQuery query) {
         TelegramUserEntity userEntity = telegramUserRepository.findById(query.from().id())
-                .orElseGet(() -> telegramUserRepository.save(TelegramUserEntity.builder()
-                        .username(getOriginUsername(query.from()))
-                        .lastName(query.from().lastName())
-                        .firstName(query.from().firstName())
-                        .id(query.from().id())
-                        .build()));
+                .orElseGet(() -> createNewUser(query.from()));
 
         TelegramChatEntity chatEntity = telegramChatRepository.findById(query.message().chat().id())
                 .orElseGet(() -> telegramChatRepository.save(TelegramChatEntity.builder()
