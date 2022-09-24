@@ -72,7 +72,7 @@ public class DrugsService {
                 double hoursDiff = Math.floor(diff / 60d);
 
                 bot.execute(new SendMessage(acc.getChat().getId(),
-                        String.format("Не зараз.\nОстання справа ще закінчилась\nСпробуй через %s годин(и) і %s хвилин(и)",
+                        String.format("Не зараз.\nОстання справа ще закінчилась\nСпробуй через %s годин(и) та %s хвилин(и)",
                                 hoursDiff,
                                 diff - (hoursDiff * 60))));
                 return;

@@ -21,6 +21,7 @@ import com.coolguys.bot.service.KarmaService;
 import com.coolguys.bot.service.MessagesService;
 import com.coolguys.bot.service.OrderService;
 import com.coolguys.bot.service.PoliceDepartmentService;
+import com.coolguys.bot.service.PrivateChatService;
 import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.UserService;
 import com.google.gson.Gson;
@@ -35,6 +36,7 @@ import com.pengrad.telegrambot.model.User;
 import com.pengrad.telegrambot.request.DeleteMessage;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendSticker;
+import com.pengrad.telegrambot.response.SendResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -70,6 +72,7 @@ public class MessagesListener implements UpdatesListener {
     private final ChatAccountRepository chatAccountRepository;
     private final ChatAccountMapper chatAccountMapper;
     private final TelegramChatRepository telegramChatRepository;
+    private final PrivateChatService privateChatService;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -87,7 +90,8 @@ public class MessagesListener implements UpdatesListener {
                             PoliceDepartmentService policeDepartmentService,
                             GuardDepartmentService guardDepartmentService,
                             ChatAccountRepository chatAccountRepository,
-                            ChatAccountMapper chatAccountMapper, TelegramChatRepository telegramChatRepository) {
+                            ChatAccountMapper chatAccountMapper, TelegramChatRepository telegramChatRepository,
+                            PrivateChatService privateChatService) {
         this.orderService = orderService;
         this.diceService = diceService;
         this.karmaService = karmaService;
@@ -101,6 +105,7 @@ public class MessagesListener implements UpdatesListener {
         this.chatAccountRepository = chatAccountRepository;
         this.chatAccountMapper = chatAccountMapper;
         this.telegramChatRepository = telegramChatRepository;
+        this.privateChatService = privateChatService;
         this.bot = bot;
         this.policeDepartmentService = policeDepartmentService;
         this.guardDepartmentService = guardDepartmentService;
@@ -133,8 +138,7 @@ public class MessagesListener implements UpdatesListener {
             }
             if (update.message() != null) {
                 if (Chat.Type.Private.equals(update.message().chat().type())) {
-                    log.info("Private message from: {}", update.message().from());
-                    bot.execute(new SendMessage(update.message().chat().id(), "Додай мене до чату і надай права адміна для того щоб почати гру."));
+                    privateChatService.processPrivateMessage(update.message());
                 } else {
                     processMessage(update.message());
                 }
@@ -309,6 +313,8 @@ public class MessagesListener implements UpdatesListener {
     private void printPersonalStats(ChatAccount acc) {
         StringBuilder sb = new StringBuilder().append("Показники для @")
                 .append(acc.getUser().getUsername())
+                .append("\nЧат: ")
+                .append(acc.getChat().getName())
                 .append("\n****************");
 
         if (guardService.doesHaveGuard(acc)) {
@@ -331,7 +337,14 @@ public class MessagesListener implements UpdatesListener {
         }
 
         sb.append("\nКредити: ").append(acc.getSocialCredit());
-        bot.execute(new SendMessage(acc.getChat().getId(), sb.toString()));
+        SendResponse response = bot.execute(new SendMessage(acc.getUser().getId(), sb.toString()));
+        if (response.isOk()) {
+            bot.execute(new SendMessage(acc.getChat().getId(), "Відправив стату в лічку"));
+        } else {
+            bot.execute(new SendMessage(acc.getChat().getId(),
+                    String.format("@%s напиши мені в лічку щоб отримувати ці сповіщення", acc.getUser().getUsername())));
+        }
+        log.info("response: {}", response);
     }
 
     private void printCredits(Message message) {
