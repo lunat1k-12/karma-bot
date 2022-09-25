@@ -60,30 +60,30 @@ public class ScheduledTasksService {
     private static final String POLICE_CHECK_STICKER = "CAACAgIAAxkBAAIDRWMcw5JmJ-5YvBKHMffkfT67LnelAAJ-AwACbbBCA3EZlrX3Vpb0KQQ";
     private static final Integer DRUGS_FINE = 300;
 
-    @Scheduled(cron = "00 00 10 * * *")
+    @Scheduled(cron = "00 00 12 * * *")
     public void drugRaid() {
         StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+                .peek(ch -> log.info("Search for drugs in {}", ch.getName()))
                 .map(TelegramChatEntity::getId)
                 .forEach(this::chatDrugRaid);
     }
 
     private void chatDrugRaid(Long chatId) {
-        log.info("Search for drugs in {}", chatId);
-        List<ChatAccount> users = userService.findActiveAccByChatId(chatId);
-
-        if (users.isEmpty()) {
-            return;
-        }
-
-        Random random = new Random();
-
-        int userIndex = random.nextInt(users.size());
-        ChatAccount userToCheck = users.get(userIndex);
-
-        messagesListener.sendMessage(chatId, String.format("Поліція вирішила обшукати @%s", userToCheck.getUser().getUsername()));
-        messagesListener.sendSticker(chatId, POLICE_CHECK_STICKER);
-
         try {
+            List<ChatAccount> users = userService.findActiveAccByChatId(chatId);
+
+            if (users.isEmpty()) {
+                log.info("no users in chat {}", chatId);
+                return;
+            }
+
+            Random random = new Random();
+
+            int userIndex = random.nextInt(users.size());
+            ChatAccount userToCheck = users.get(userIndex);
+
+            messagesListener.sendMessage(chatId, String.format("Поліція вирішила обшукати @%s", userToCheck.getUser().getUsername()));
+            messagesListener.sendSticker(chatId, POLICE_CHECK_STICKER);
             Thread.sleep(1000);
 
             if (drugsService.findActiveDrugDeals(userToCheck).size() > 0) {
@@ -95,11 +95,13 @@ public class ScheduledTasksService {
                 TelegramPoliceDepartment pd = policeDepartmentService.findOrCreateTelegramPdByChatID(chatId);
                 TelegramGuardDepartment gd = guardDepartmentService.findOrCreateTelegramGdByChatID(chatId);
                 if (userToCheck.getSocialCredit() >= DRUGS_FINE) {
+                    log.info("{} has enough credits", userToCheck.getUser().getUsername());
                     messagesListener.sendMessage(chatId, String.format("@%s оштрафовано на %s кредитів",
                             userToCheck.getUser().getUsername(), DRUGS_FINE));
                     policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 } else if (casino.getOwner() != null && userToCheck.getUser().getId().equals(casino.getOwner().getId())) {
+                    log.info("{} has casino", userToCheck.getUser().getUsername());
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
                                     "@%s втрачає казино", userToCheck.getUser().getUsername()));
@@ -107,6 +109,7 @@ public class ScheduledTasksService {
                     casinoService.dropCasinoOwner(chatId);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 } else if (pd.getOwner() != null && userToCheck.getUser().getId().equals(pd.getOwner().getId())) {
+                    log.info("{} has police department", userToCheck.getUser().getUsername());
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
                                     "@%s втрачає поліцейську ділянку", userToCheck.getUser().getUsername()));
@@ -114,6 +117,7 @@ public class ScheduledTasksService {
                     policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 } else if (gd.getOwner() != null && userToCheck.getUser().getId().equals(gd.getOwner().getId())) {
+                    log.info("{} has guard department", userToCheck.getUser().getUsername());
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
                                     "@%s втрачає охороне агенство", userToCheck.getUser().getUsername()));
@@ -121,6 +125,7 @@ public class ScheduledTasksService {
                     policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 } else {
+                    log.info("{} going to jail", userToCheck.getUser().getUsername());
                     messagesListener.sendMessage(chatId,
                             String.format("Коштів не вистачає для покриття штрафу.\n" +
                                     "@%s потрапив у в'язницю", userToCheck.getUser().getUsername()));
@@ -129,11 +134,12 @@ public class ScheduledTasksService {
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 }
             } else {
+                log.info("nothing found");
                 messagesListener.sendMessage(chatId, "Поліція нічого не знайшла");
             }
 
-        } catch (InterruptedException e) {
-            log.error("chatDrugRaid - Exception while sleep");
+        } catch (Exception e) {
+            log.error("exception in time of chatDrugRaid", e);
         }
     }
 
