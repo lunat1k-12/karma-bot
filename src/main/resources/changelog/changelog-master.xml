@@ -49,4 +49,5 @@
     <include file="/changelog/changes/insert-refactor-note.xml"/>
     <include file="/changelog/changes/v2-updates/drop-old-tables.xml"/>
     <include file="/changelog/changes/v2-updates/alter-telegram-order-request.xml"/>
+    <include file="/changelog/changes/v2-updates/create-roles-table.xml"/>
 </databaseChangeLog>
