@@ -137,6 +137,11 @@ public class MessagesListener implements UpdatesListener {
                 updateChatMember(update.myChatMember());
             }
             if (update.message() != null) {
+                if (update.message().from().isBot()) {
+                    log.info("Message from bot will be ignored");
+                    return;
+                }
+
                 if (Chat.Type.Private.equals(update.message().chat().type())) {
                     privateChatService.processPrivateMessage(update.message());
                 } else {
