@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.coolguys.bot.dto.QueryDataDto.ROLE_ACTION_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.ROLE_SELECT_TYPE;
 
 @Service
@@ -25,6 +26,27 @@ import static com.coolguys.bot.dto.QueryDataDto.ROLE_SELECT_TYPE;
 public class KeyboardService {
     private final ChatAccountRepository chatAccountRepository;
     private final ChatAccountMapper chatAccountMapper;
+
+    public InlineKeyboardMarkup getRoleActionsKeyboard(ChatAccount acc, RoleType role) {
+        InlineKeyboardButton[] keys = new InlineKeyboardButton[role.getRoleActions().size()];
+
+        Gson gson = new Gson();
+        int roleIndex = 0;
+        for (int i = 0; i < keys.length; i++) {
+            if (role.getRoleActions().size() > roleIndex) {
+                RoleType.RoleAction roleAction = role.getRoleActions().get(roleIndex);
+                QueryDataDto query = QueryDataDto.builder()
+                        .type(ROLE_ACTION_TYPE)
+                        .option(roleAction.getId())
+                        .originalAccId(acc.getId())
+                        .build();
+                keys[i] = new InlineKeyboardButton(roleAction.getLabel()).callbackData(gson.toJson(query));
+                roleIndex++;
+            }
+        }
+
+        return new InlineKeyboardMarkup(keys);
+    }
 
     public InlineKeyboardMarkup getRolesKeyboard(ChatAccount acc) {
         int verticalRowCount = Double.valueOf(Math.ceil(Integer.valueOf(RoleType.values().length).doubleValue() / 2)).intValue();

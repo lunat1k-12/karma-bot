@@ -53,6 +53,7 @@ import java.util.stream.Collectors;
 
 import static com.coolguys.bot.dto.QueryDataDto.DROP_DRUGS_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.REPLY_ORDER_TYPE;
+import static com.coolguys.bot.dto.QueryDataDto.ROLE_ACTION_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.ROLE_SELECT_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.STEAL_TYPE;
 
@@ -180,6 +181,9 @@ public class MessagesListener implements UpdatesListener {
                         executeAction(originAcc.getChat().getId(),
                                 () -> roleService.processRoleSelection(originAcc, dto));
                         break;
+                    case ROLE_ACTION_TYPE:
+                        log.info("Role Action selected");
+                        break;
                 }
             }
         });
@@ -264,6 +268,10 @@ public class MessagesListener implements UpdatesListener {
             log.info("Select role command from: {}", originAccount.getUser().getUsername());
             executeAction(originAccount.getChat().getId(),
                     () -> roleService.selectRoleRequest(originAccount));
+        } else if (message.text() != null && botConfig.getRoleActionsCommand().equals(message.text())) {
+            log.info("show role actions command from: {}", originAccount.getUser().getUsername());
+            executeAction(originAccount.getChat().getId(),
+                    () -> roleService.showRoleActions(originAccount));
         } else if (message.dice() != null) {
             log.info("Process dice");
             executeAction(originAccount.getChat().getId(),

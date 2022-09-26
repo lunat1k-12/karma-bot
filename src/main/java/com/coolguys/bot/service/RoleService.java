@@ -11,6 +11,7 @@ import com.coolguys.bot.repository.RoleRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.response.SendResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,23 @@ public class RoleService {
     private final TelegramBot bot;
     private final KeyboardService keyboardService;
     private final ChatAccountMapper chatAccountMapper;
+
+    public void showRoleActions(ChatAccount acc) {
+        Role role = roleRepository.findByAccountId(acc.getId())
+                .map(roleMapper::toDto)
+                .orElse(null);
+
+        if (role == null || LocalDateTime.now().isAfter(role.getExpires())) {
+            bot.execute(new SendMessage(acc.getChat().getId(), "Тобі спочатку треба обрати роль"));
+            return;
+        }
+
+        SendResponse resp = bot.execute(new SendMessage(acc.getChat().getId(), "Обери що хочеш зробити:")
+                .parseMode(ParseMode.HTML)
+                .replyMarkup(keyboardService.getRoleActionsKeyboard(acc, role.getRole())));
+
+        log.info("resp: {}", resp);
+    }
 
     public Optional<Role> getAccRole(ChatAccount acc) {
         return roleRepository.findByAccountId(acc.getId())
