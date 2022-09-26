@@ -60,8 +60,9 @@ public class ScheduledTasksService {
     private static final String POLICE_CHECK_STICKER = "CAACAgIAAxkBAAIDRWMcw5JmJ-5YvBKHMffkfT67LnelAAJ-AwACbbBCA3EZlrX3Vpb0KQQ";
     private static final Integer DRUGS_FINE = 300;
 
-    @Scheduled(cron = "00 00 12 * * *")
+    @Scheduled(cron = "00 00 10 * * *")
     public void drugRaid() {
+        log.info("Initiate drug raid");
         StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
                 .peek(ch -> log.info("Search for drugs in {}", ch.getName()))
                 .map(TelegramChatEntity::getId)
@@ -145,6 +146,7 @@ public class ScheduledTasksService {
 
     @Scheduled(cron = "00 00 07 * * *")
     public void getTopAndWorstUser() {
+        log.info("Initiate Top/Worst");
         StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
                 .map(TelegramChatEntity::getId)
                 .forEach(this::getTopAndWorstUser);
@@ -181,6 +183,7 @@ public class ScheduledTasksService {
 
     @Scheduled(cron = "00 00 08 * * MON")
     public void processMostActiveUser() {
+        log.info("Initiate Most Active");
         StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
                 .map(TelegramChatEntity::getId)
                 .forEach(this::processChatMostActiveUser);
