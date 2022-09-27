@@ -2,6 +2,7 @@ package com.coolguys.bot.service;
 
 import com.coolguys.bot.dto.ChatAccount;
 import com.coolguys.bot.dto.TelegramBanRecord;
+import com.coolguys.bot.entity.GainMoneyActionEntity;
 import com.coolguys.bot.mapper.ChatAccountMapper;
 import com.coolguys.bot.mapper.TelegramBanRecordMapper;
 import com.coolguys.bot.repository.ChatAccountRepository;
@@ -62,6 +63,10 @@ public class WatchService {
         bot.execute(new SendMessage(acc.getChat().getId(),
                 String.format("@%s заробив на в`язнях %s кредитів", acc.getUser().getUsername(), totalIncome)));
         chatAccountRepository.save(chatAccountMapper.toEntity(acc));
+        gainMoneyActionRepository.save(GainMoneyActionEntity.builder()
+                .expires(LocalDateTime.now().plusHours(6))
+                .account(chatAccountMapper.toEntity(acc))
+                .build());
     }
 
     private int getIncomeFromPrisoner(TelegramBanRecord record) {
@@ -73,6 +78,10 @@ public class WatchService {
             return 0;
         }
 
-        return Double.valueOf(Math.floor(prisoner.getSocialCredit() / 2d)).intValue();
+        int watchIncome = Double.valueOf(Math.floor(prisoner.getSocialCredit() / 2d)).intValue();
+
+        prisoner.minusCredit(watchIncome);
+        chatAccountRepository.save(chatAccountMapper.toEntity(prisoner));
+        return watchIncome;
     }
 }

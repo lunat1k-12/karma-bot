@@ -90,7 +90,8 @@ public class RoleService {
                 .intValue();
         log.info("Max {} users per role {} in chat {}", roleMaxUsers, selectedRole.getId(), originAcc.getChat().getName());
 
-        if (roleRepository.findByChatAndRoleType(originAcc.getChat().getId(), selectedRole.getId()).size() >= roleMaxUsers) {
+        if (roleRepository.findByChatAndRoleType(originAcc.getChat().getId(), selectedRole.getId(), LocalDateTime.now())
+                .size() >= roleMaxUsers) {
             log.info("Too much {}", selectedRole.getLabel());
             bot.execute(new SendMessage(originAcc.getChat().getId(),
                     String.format("Занадто багато гравців у ролі '%s'\nОбери іншу", selectedRole.getLabel())));
