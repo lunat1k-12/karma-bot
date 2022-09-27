@@ -20,6 +20,7 @@ import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -60,13 +61,20 @@ public class ScheduledTasksService {
     private static final String POLICE_CHECK_STICKER = "CAACAgIAAxkBAAIDRWMcw5JmJ-5YvBKHMffkfT67LnelAAJ-AwACbbBCA3EZlrX3Vpb0KQQ";
     private static final Integer DRUGS_FINE = 300;
 
-    @Scheduled(cron = "00 00 10 * * *")
+    @Scheduled(cron = "00 30 10 * * *")
+    @Async
     public void drugRaid() {
         log.info("Initiate drug raid");
-        StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
-                .peek(ch -> log.info("Search for drugs in {}", ch.getName()))
-                .map(TelegramChatEntity::getId)
-                .forEach(this::chatDrugRaid);
+        try {
+            StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+                    .peek(ch -> log.info("Search for drugs in {}", ch.getName()))
+                    .map(TelegramChatEntity::getId)
+                    .forEach(this::chatDrugRaid);
+
+            Thread.sleep(3000);
+        } catch (Exception e) {
+            log.error("drugRaid - Exception while sleep", e);
+        }
     }
 
     private void chatDrugRaid(Long chatId) {
@@ -145,11 +153,18 @@ public class ScheduledTasksService {
     }
 
     @Scheduled(cron = "00 00 07 * * *")
+    @Async
     public void getTopAndWorstUser() {
-        log.info("Initiate Top/Worst");
-        StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
-                .map(TelegramChatEntity::getId)
-                .forEach(this::getTopAndWorstUser);
+        try {
+            log.info("Initiate Top/Worst");
+            StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+                    .map(TelegramChatEntity::getId)
+                    .forEach(this::getTopAndWorstUser);
+
+            Thread.sleep(3000);
+        } catch (Exception e) {
+            log.error("getTopAndWorstUser - Exception while sleep", e);
+        }
     }
 
     private void getTopAndWorstUser(Long chatId) {
@@ -182,11 +197,18 @@ public class ScheduledTasksService {
     }
 
     @Scheduled(cron = "00 00 08 * * MON")
+    @Async
     public void processMostActiveUser() {
-        log.info("Initiate Most Active");
-        StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
-                .map(TelegramChatEntity::getId)
-                .forEach(this::processChatMostActiveUser);
+        try {
+            log.info("Initiate Most Active");
+            StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+                    .map(TelegramChatEntity::getId)
+                    .forEach(this::processChatMostActiveUser);
+
+            Thread.sleep(3000);
+        } catch (Exception e) {
+            log.error("processMostActiveUser - Exception while sleep", e);
+        }
     }
 
     private void processChatMostActiveUser(Long chatId) {
