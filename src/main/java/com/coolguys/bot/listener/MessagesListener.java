@@ -22,6 +22,8 @@ import com.coolguys.bot.service.MessagesService;
 import com.coolguys.bot.service.OrderService;
 import com.coolguys.bot.service.PoliceDepartmentService;
 import com.coolguys.bot.service.PrivateChatService;
+import com.coolguys.bot.service.role.RoleProcessor;
+import com.coolguys.bot.service.role.RoleService;
 import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.UserService;
 import com.google.gson.Gson;
@@ -52,6 +54,8 @@ import java.util.stream.Collectors;
 
 import static com.coolguys.bot.dto.QueryDataDto.DROP_DRUGS_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.REPLY_ORDER_TYPE;
+import static com.coolguys.bot.dto.QueryDataDto.ROLE_ACTION_TYPE;
+import static com.coolguys.bot.dto.QueryDataDto.ROLE_SELECT_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.STEAL_TYPE;
 
 @Slf4j
@@ -73,6 +77,8 @@ public class MessagesListener implements UpdatesListener {
     private final ChatAccountMapper chatAccountMapper;
     private final TelegramChatRepository telegramChatRepository;
     private final PrivateChatService privateChatService;
+    private final RoleService roleService;
+    private final RoleProcessor roleProcessor;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -91,7 +97,8 @@ public class MessagesListener implements UpdatesListener {
                             GuardDepartmentService guardDepartmentService,
                             ChatAccountRepository chatAccountRepository,
                             ChatAccountMapper chatAccountMapper, TelegramChatRepository telegramChatRepository,
-                            PrivateChatService privateChatService) {
+                            PrivateChatService privateChatService, RoleService roleService,
+                            RoleProcessor roleProcessor) {
         this.orderService = orderService;
         this.diceService = diceService;
         this.karmaService = karmaService;
@@ -109,6 +116,8 @@ public class MessagesListener implements UpdatesListener {
         this.bot = bot;
         this.policeDepartmentService = policeDepartmentService;
         this.guardDepartmentService = guardDepartmentService;
+        this.roleService = roleService;
+        this.roleProcessor = roleProcessor;
         log.info("Bot Token: {}", botConfig.getToken());
         bot.setUpdatesListener(this);
     }
@@ -171,6 +180,16 @@ public class MessagesListener implements UpdatesListener {
                         executeAction(originAcc.getChat().getId(),
                                 () -> drugsService.processDropDrug(originAcc, dto));
                         break;
+                    case ROLE_SELECT_TYPE:
+                        log.info("Role select query");
+                        executeAction(originAcc.getChat().getId(),
+                                () -> roleService.processRoleSelection(originAcc, dto));
+                        break;
+                    case ROLE_ACTION_TYPE:
+                        log.info("Role Action selected");
+                        executeAction(originAcc.getChat().getId(),
+                                () -> roleProcessor.processAction(originAcc, dto));
+                        break;
                 }
             }
         });
@@ -216,13 +235,6 @@ public class MessagesListener implements UpdatesListener {
             log.info("remove play ban command");
             executeAction(originAccount.getChat().getId(),
                     () -> diceService.removePlayBan(originAccount));
-        } else if (message.text() != null && botConfig.getStealCommand().equals(message.text())) {
-            log.info("New steal command");
-            executeAction(message.chat().id(),
-                    () -> {
-                        stealService.stealRequest(originAccount);
-                        bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
-                    });
         } else if (message.text() != null && botConfig.getBuyGuardCommand().equals(message.text())) {
             log.info("Buy guard request");
             executeAction(originAccount.getChat().getId(),
@@ -231,14 +243,6 @@ public class MessagesListener implements UpdatesListener {
             log.info("Buy Casino request");
             executeAction(originAccount.getChat().getId(),
                     () -> processCasinoBuy(originAccount));
-        } else if (message.text() != null && botConfig.getDoDrugsCommand().equals(message.text())) {
-            log.info("Do drugs request for {}", originAccount.getUser().getUsername());
-            executeAction(originAccount.getChat().getId(),
-                    () -> drugsService.doDrugs(originAccount));
-        } else if (message.text() != null && botConfig.getDropDrugsCommand().equals(message.text())) {
-            log.info("Drop drugs request from {}", originAccount.getUser().getUsername());
-            executeAction(originAccount.getChat().getId(),
-                    () -> drugsService.dropDrugsRequest(originAccount));
         } else if (message.text() != null && botConfig.getBuyPoliceCommand().equals(message.text())) {
             log.info("Buy police department request");
             executeAction(originAccount.getChat().getId(),
@@ -251,6 +255,14 @@ public class MessagesListener implements UpdatesListener {
             log.info("Buy Guard department request");
             executeAction(originAccount.getChat().getId(),
                     () -> processGdBuy(originAccount));
+        } else if (message.text() != null && botConfig.getSelectRoleCommand().equals(message.text())) {
+            log.info("Select role command from: {}", originAccount.getUser().getUsername());
+            executeAction(originAccount.getChat().getId(),
+                    () -> roleService.selectRoleRequest(originAccount));
+        } else if (message.text() != null && botConfig.getRoleActionsCommand().equals(message.text())) {
+            log.info("show role actions command from: {}", originAccount.getUser().getUsername());
+            executeAction(originAccount.getChat().getId(),
+                    () -> roleService.showRoleActions(originAccount));
         } else if (message.dice() != null) {
             log.info("Process dice");
             executeAction(originAccount.getChat().getId(),
@@ -391,6 +403,8 @@ public class MessagesListener implements UpdatesListener {
 
     private String toStringInfo(ChatAccount acc, TelegramCasino casino, TelegramPoliceDepartment pd, TelegramGuardDepartment gd) {
         StringBuilder sb = new StringBuilder(String.format("%s : %s ", acc.getUser().getUsername(), acc.getSocialCredit()));
+        roleService.getAccRole(acc)
+                .ifPresent(r -> sb.append(r.getRole().getEmoji()));
         if (guardService.doesHaveGuard(acc)) {
             sb.append("⚔️");
         }

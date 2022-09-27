@@ -17,12 +17,11 @@ public class BotConfig {
     private String creditCommand;
     private String autoReplyCommand;
     private String removePlayBanCommand;
-    private String stealCommand;
     private String buyGuardCommand;
     private String buyCasinoCommand;
-    private String doDrugsCommand;
-    private String dropDrugsCommand;
     private String buyPoliceCommand;
     private String myStatsCommand;
     private String buyGuardDepartmentCommand;
+    private String selectRoleCommand;
+    private String roleActionsCommand;
 }

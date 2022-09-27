@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+    <changeSet id="revision-1" author="evgen.chemeris">
+        <insert tableName="update_note">
+            <column name="status" value="waiting"/>
+            <column name="message">
+                <![CDATA[Тепер ви можете обрати собі роль!
+- команд /do_drugs /drop_drugs /steal більше не існує
+- ви можете обрати собі одну з наступних ролей: Крадій 🥷/ Наркоділер ⚗ / Вертухай 👮‍
+- роль можна обрати раз на тиждень. Змінити її протягом наступного тижня неможливо
+- роль можна обрати за допомогою команди /select_role
+- для використання можливостей ролі /role_actions
+- роль Крадій, дає можливість красти
+- роль Наркоділер, дає можливість заробляти на наркоті і підкидувати її
+- роль Вертухай, раз на 6 годин дає можливість забрати 50% кредитів у в`язнів]]>
+            </column>
+        </insert>
+    </changeSet>
+</databaseChangeLog>
