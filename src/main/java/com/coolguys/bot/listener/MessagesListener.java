@@ -22,7 +22,8 @@ import com.coolguys.bot.service.MessagesService;
 import com.coolguys.bot.service.OrderService;
 import com.coolguys.bot.service.PoliceDepartmentService;
 import com.coolguys.bot.service.PrivateChatService;
-import com.coolguys.bot.service.RoleService;
+import com.coolguys.bot.service.role.RoleProcessor;
+import com.coolguys.bot.service.role.RoleService;
 import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.UserService;
 import com.google.gson.Gson;
@@ -77,6 +78,7 @@ public class MessagesListener implements UpdatesListener {
     private final TelegramChatRepository telegramChatRepository;
     private final PrivateChatService privateChatService;
     private final RoleService roleService;
+    private final RoleProcessor roleProcessor;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -95,7 +97,8 @@ public class MessagesListener implements UpdatesListener {
                             GuardDepartmentService guardDepartmentService,
                             ChatAccountRepository chatAccountRepository,
                             ChatAccountMapper chatAccountMapper, TelegramChatRepository telegramChatRepository,
-                            PrivateChatService privateChatService, RoleService roleService) {
+                            PrivateChatService privateChatService, RoleService roleService,
+                            RoleProcessor roleProcessor) {
         this.orderService = orderService;
         this.diceService = diceService;
         this.karmaService = karmaService;
@@ -114,6 +117,7 @@ public class MessagesListener implements UpdatesListener {
         this.policeDepartmentService = policeDepartmentService;
         this.guardDepartmentService = guardDepartmentService;
         this.roleService = roleService;
+        this.roleProcessor = roleProcessor;
         log.info("Bot Token: {}", botConfig.getToken());
         bot.setUpdatesListener(this);
     }
@@ -183,6 +187,8 @@ public class MessagesListener implements UpdatesListener {
                         break;
                     case ROLE_ACTION_TYPE:
                         log.info("Role Action selected");
+                        executeAction(originAcc.getChat().getId(),
+                                () -> roleProcessor.processAction(originAcc, dto));
                         break;
                 }
             }
@@ -229,13 +235,6 @@ public class MessagesListener implements UpdatesListener {
             log.info("remove play ban command");
             executeAction(originAccount.getChat().getId(),
                     () -> diceService.removePlayBan(originAccount));
-        } else if (message.text() != null && botConfig.getStealCommand().equals(message.text())) {
-            log.info("New steal command");
-            executeAction(message.chat().id(),
-                    () -> {
-                        stealService.stealRequest(originAccount);
-                        bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
-                    });
         } else if (message.text() != null && botConfig.getBuyGuardCommand().equals(message.text())) {
             log.info("Buy guard request");
             executeAction(originAccount.getChat().getId(),
@@ -244,14 +243,6 @@ public class MessagesListener implements UpdatesListener {
             log.info("Buy Casino request");
             executeAction(originAccount.getChat().getId(),
                     () -> processCasinoBuy(originAccount));
-        } else if (message.text() != null && botConfig.getDoDrugsCommand().equals(message.text())) {
-            log.info("Do drugs request for {}", originAccount.getUser().getUsername());
-            executeAction(originAccount.getChat().getId(),
-                    () -> drugsService.doDrugs(originAccount));
-        } else if (message.text() != null && botConfig.getDropDrugsCommand().equals(message.text())) {
-            log.info("Drop drugs request from {}", originAccount.getUser().getUsername());
-            executeAction(originAccount.getChat().getId(),
-                    () -> drugsService.dropDrugsRequest(originAccount));
         } else if (message.text() != null && botConfig.getBuyPoliceCommand().equals(message.text())) {
             log.info("Buy police department request");
             executeAction(originAccount.getChat().getId(),

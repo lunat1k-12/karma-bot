@@ -1,4 +1,4 @@
-package com.coolguys.bot.service;
+package com.coolguys.bot.service.role;
 
 import com.coolguys.bot.dto.ChatAccount;
 import com.coolguys.bot.dto.QueryDataDto;
@@ -8,6 +8,7 @@ import com.coolguys.bot.entity.RoleEntity;
 import com.coolguys.bot.mapper.ChatAccountMapper;
 import com.coolguys.bot.mapper.RoleMapper;
 import com.coolguys.bot.repository.RoleRepository;
+import com.coolguys.bot.service.KeyboardService;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.SendMessage;
