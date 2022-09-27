@@ -7,6 +7,7 @@ import com.coolguys.bot.dto.RoleType;
 import com.coolguys.bot.entity.RoleEntity;
 import com.coolguys.bot.mapper.ChatAccountMapper;
 import com.coolguys.bot.mapper.RoleMapper;
+import com.coolguys.bot.repository.ChatAccountRepository;
 import com.coolguys.bot.repository.RoleRepository;
 import com.coolguys.bot.service.KeyboardService;
 import com.pengrad.telegrambot.TelegramBot;
@@ -18,7 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +33,7 @@ public class RoleService {
     private final TelegramBot bot;
     private final KeyboardService keyboardService;
     private final ChatAccountMapper chatAccountMapper;
+    private final ChatAccountRepository chatAccountRepository;
 
     public void showRoleActions(ChatAccount acc) {
         Role role = roleRepository.findByAccountId(acc.getId())
@@ -77,6 +81,21 @@ public class RoleService {
         }
 
         RoleType selectedRole = RoleType.getById(dto.getOption());
+
+        List<ChatAccount> chatAccounts = chatAccountRepository.findByChatId(originAcc.getChat().getId()).stream()
+                .map(chatAccountMapper::toDto)
+                .collect(Collectors.toList());
+
+        int roleMaxUsers = Double.valueOf(Math.ceil(Integer.valueOf(chatAccounts.size()).doubleValue() / RoleType.values().length))
+                .intValue();
+        log.info("Max {} users per role {} in chat {}", roleMaxUsers, selectedRole.getId(), originAcc.getChat().getName());
+
+        if (roleRepository.findByChatAndRoleType(originAcc.getChat().getId(), selectedRole.getId()).size() >= roleMaxUsers) {
+            log.info("Too much {}", selectedRole.getLabel());
+            bot.execute(new SendMessage(originAcc.getChat().getId(),
+                    String.format("Занадто багато гравців у ролі '%s'\nОбери іншу", selectedRole.getLabel())));
+            return;
+        }
 
         roleRepository.findByAccountId(originAcc.getId())
                 .map(roleMapper::toDto)

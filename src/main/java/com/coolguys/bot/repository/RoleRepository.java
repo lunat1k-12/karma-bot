@@ -6,6 +6,7 @@ import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -13,4 +14,8 @@ public interface RoleRepository extends CrudRepository<RoleEntity, Long> {
 
     @Query("select r from role r where r.account.id = :accId")
     Optional<RoleEntity> findByAccountId(@Param("accId") Long accId);
+
+    @Query("select r from role r where r.account.chat.id = :chatId and r.role = :type")
+    List<RoleEntity> findByChatAndRoleType(@Param("chatId") Long chatId,
+                                           @Param("type") String type);
 }
