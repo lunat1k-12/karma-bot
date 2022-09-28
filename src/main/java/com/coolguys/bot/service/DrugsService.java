@@ -41,7 +41,7 @@ public class DrugsService {
     private final TelegramOrderRepository telegramOrderRepository;
     private final TelegramOrderMapper telegramOrderMapper;
 
-    private static final Integer DRUGS_INCOME = 200;
+    private static final Integer DRUGS_INCOME = 400;
 
     public void dropDrugsRequest(ChatAccount acc) {
         log.info("Drop drug request from: {}", acc.getUser().getUsername());

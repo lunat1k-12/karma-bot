@@ -53,4 +53,5 @@
     <include file="/changelog/changes/v2-updates/create-gain-money-action-table.xml"/>
     <include file="/changelog/changes/v2-updates/insert-role-update-notes.xml"/>
     <include file="/changelog/changes/v2-updates/insert-drug-dealer-update.xml"/>
+    <include file="/changelog/changes/v2-updates/insert-drugs-update.xml"/>
 </databaseChangeLog>
