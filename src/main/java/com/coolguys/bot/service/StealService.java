@@ -47,7 +47,7 @@ public class StealService {
     private final TelegramBanRecordRepository telegramBanRecordRepository;
     private final TelegramUserMapper telegramUserMapper;
     public static final int PAUSE_MILLIS = 3000;
-    public static final int STEAL_BORDER = 1000;
+    public static final int STEAL_BORDER = 800;
 
     private static final int JAIL_TIME = 6;
 

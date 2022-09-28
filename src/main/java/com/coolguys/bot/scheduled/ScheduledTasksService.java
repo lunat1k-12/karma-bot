@@ -105,9 +105,10 @@ public class ScheduledTasksService {
                 TelegramGuardDepartment gd = guardDepartmentService.findOrCreateTelegramGdByChatID(chatId);
                 if (userToCheck.getSocialCredit() >= DRUGS_FINE) {
                     log.info("{} has enough credits", userToCheck.getUser().getUsername());
-                    messagesListener.sendMessage(chatId, String.format("@%s оштрафовано на %s кредитів",
+                    messagesListener.sendMessage(chatId, String.format("@%s оштрафовано на %s кредитів і відправлено у в`язницю",
                             userToCheck.getUser().getUsername(), DRUGS_FINE));
                     policeDepartmentService.processFine(userToCheck, DRUGS_FINE);
+                    stealService.sendToJail(userToCheck);
                     messagesListener.sendSticker(chatId, POLICE_STICKER);
                 } else if (casino.getOwner() != null && userToCheck.getUser().getId().equals(casino.getOwner().getId())) {
                     log.info("{} has casino", userToCheck.getUser().getUsername());
