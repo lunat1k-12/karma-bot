@@ -43,14 +43,8 @@ public class DrugsService {
 
     private static final Integer DRUGS_INCOME = 200;
 
-    private static final Integer DROP_DRUG_PRICE = 50;
-
     public void dropDrugsRequest(ChatAccount acc) {
         log.info("Drop drug request from: {}", acc.getUser().getUsername());
-        if (acc.getSocialCredit() < DROP_DRUG_PRICE) {
-            bot.execute(new SendMessage(acc.getChat().getId(), "В тебе недостатньо грошей"));
-            return;
-        }
 
         if (stealService.isInJail(acc)) {
             bot.execute(new SendMessage(acc.getChat().getId(), "Спочатку відсиди своє!"));
@@ -87,8 +81,6 @@ public class DrugsService {
                 .build();
 
         telegramOrderRepository.save(telegramOrderMapper.toEntity(newOrder));
-        acc.minusCredit(DROP_DRUG_PRICE);
-        chatAccountRepository.save(chatAccountMapper.toEntity(acc));
 
         bot.execute(new SendMessage(acc.getChat().getId(), "Обери кому хочеш підкинути наркотики:")
                 .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(acc.getChat().getId(), acc.getId(), QueryDataDto.DROP_DRUGS_TYPE)));
@@ -113,8 +105,6 @@ public class DrugsService {
 
         if ("0".equals(query.getOption())) {
             telegramOrderRepository.deleteById(order.getId());
-            originAcc.plusCredit(DROP_DRUG_PRICE);
-            chatAccountRepository.save(chatAccountMapper.toEntity(originAcc));
             bot.execute(new SendMessage(originAcc.getChat().getId(), "Зловмисник одумався"));
             return;
         }

@@ -59,9 +59,9 @@ public class ScheduledTasksService {
     private static final String BOTTOM_STICKER = "CAACAgIAAxkBAAIBTWMQ3suJoK8YxnByTPusiWNyxAsyAAJ_EAAC-VZgS5YaUypWFf_HKQQ";
 
     private static final String POLICE_CHECK_STICKER = "CAACAgIAAxkBAAIDRWMcw5JmJ-5YvBKHMffkfT67LnelAAJ-AwACbbBCA3EZlrX3Vpb0KQQ";
-    private static final Integer DRUGS_FINE = 300;
+    private static final Integer DRUGS_FINE = 100;
 
-    @Scheduled(cron = "00 30 10 * * *")
+    @Scheduled(cron = "00 00 10,13,16 * * *")
     @Async
     public void drugRaid() {
         log.info("Initiate drug raid");
