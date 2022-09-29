@@ -26,6 +26,7 @@ public class PrivateChatService {
     private final UserService userService;
     private final ChatAccountRepository chatAccountRepository;
     private final ChatAccountMapper chatAccountMapper;
+    private final InfoService infoService;
     private final TelegramBot bot;
 
     public void processPrivateMessage(Message message) {
@@ -40,7 +41,7 @@ public class PrivateChatService {
 
         if (user == null) {
             userService.createNewUser(message.from());
-            bot.execute(new SendMessage(message.chat().id(), "Додай мене до чату і надай права адміна для того щоб почати гру."));
+            infoService.printInfo(message.chat().id());
         } else if (accounts.size() > 0){
             bot.execute(new SendMessage(message.chat().id(), "Тут ти будеш отримувати персональні сповіщення з чатів"));
         }

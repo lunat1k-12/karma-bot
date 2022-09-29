@@ -56,8 +56,6 @@ public class ScheduledTasksService {
 
     private static final String TOP_STICKER = "CAACAgIAAxkBAAIBTGMQ3leswu0305mH8dYR1BByXz_dAAJmAQACPQ3oBOMh-z8iW4cZKQQ";
 
-    private static final String BOTTOM_STICKER = "CAACAgIAAxkBAAIBTWMQ3suJoK8YxnByTPusiWNyxAsyAAJ_EAAC-VZgS5YaUypWFf_HKQQ";
-
     private static final String POLICE_CHECK_STICKER = "CAACAgIAAxkBAAIDRWMcw5JmJ-5YvBKHMffkfT67LnelAAJ-AwACbbBCA3EZlrX3Vpb0KQQ";
     private static final Integer DRUGS_FINE = 100;
 
@@ -191,7 +189,6 @@ public class ScheduledTasksService {
         messagesListener.sendSticker(chatId, TOP_STICKER);
         messagesListener.sendMessage(chatId,
                 String.format("І на самому дні нас сьогодні чекає @%s", users.get(bottomIndex).getUser().getUsername()));
-        messagesListener.sendSticker(chatId, BOTTOM_STICKER);
         ChatAccount topUser = users.get(topIndex);
         topUser.plusCredit(TOP_PRICE);
         chatAccountRepository.save(chatAccountMapper.toEntity(topUser));
