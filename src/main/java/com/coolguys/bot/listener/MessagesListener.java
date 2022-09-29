@@ -3,29 +3,19 @@ package com.coolguys.bot.listener;
 import com.coolguys.bot.conf.BotConfig;
 import com.coolguys.bot.dto.ChatAccount;
 import com.coolguys.bot.dto.QueryDataDto;
-import com.coolguys.bot.dto.TelegramCasino;
-import com.coolguys.bot.dto.TelegramDrugAction;
-import com.coolguys.bot.dto.TelegramGuardDepartment;
-import com.coolguys.bot.dto.TelegramPoliceDepartment;
 import com.coolguys.bot.entity.TelegramChatEntity;
-import com.coolguys.bot.mapper.ChatAccountMapper;
-import com.coolguys.bot.repository.ChatAccountRepository;
 import com.coolguys.bot.repository.TelegramChatRepository;
-import com.coolguys.bot.service.CasinoService;
-import com.coolguys.bot.service.DateConverter;
 import com.coolguys.bot.service.DiceService;
 import com.coolguys.bot.service.DrugsService;
-import com.coolguys.bot.service.GuardDepartmentService;
-import com.coolguys.bot.service.GuardService;
 import com.coolguys.bot.service.KarmaService;
 import com.coolguys.bot.service.MessagesService;
 import com.coolguys.bot.service.OrderService;
-import com.coolguys.bot.service.PoliceDepartmentService;
 import com.coolguys.bot.service.PrivateChatService;
-import com.coolguys.bot.service.role.RoleProcessor;
-import com.coolguys.bot.service.role.RoleService;
 import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.UserService;
+import com.coolguys.bot.service.command.CommandProcessor;
+import com.coolguys.bot.service.role.RoleProcessor;
+import com.coolguys.bot.service.role.RoleService;
 import com.google.gson.Gson;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
@@ -35,22 +25,18 @@ import com.pengrad.telegrambot.model.ChatMemberUpdated;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.User;
-import com.pengrad.telegrambot.request.DeleteMessage;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendSticker;
-import com.pengrad.telegrambot.response.SendResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import static com.coolguys.bot.dto.QueryDataDto.DROP_DRUGS_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.REPLY_ORDER_TYPE;
@@ -67,18 +53,12 @@ public class MessagesListener implements UpdatesListener {
     private final UserService userService;
     private final MessagesService messagesService;
     private final StealService stealService;
-    private final GuardService guardService;
-    private final BotConfig botConfig;
-    private final CasinoService casinoService;
     private final DrugsService drugsService;
-    private final PoliceDepartmentService policeDepartmentService;
-    private final GuardDepartmentService guardDepartmentService;
-    private final ChatAccountRepository chatAccountRepository;
-    private final ChatAccountMapper chatAccountMapper;
     private final TelegramChatRepository telegramChatRepository;
     private final PrivateChatService privateChatService;
     private final RoleService roleService;
     private final RoleProcessor roleProcessor;
+    private final CommandProcessor commandProcessor;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -90,32 +70,23 @@ public class MessagesListener implements UpdatesListener {
     public MessagesListener(OrderService orderService,
                             DiceService diceService, KarmaService karmaService,
                             UserService userService, MessagesService messagesService,
-                            StealService stealService, GuardService guardService,
-                            BotConfig botConfig, CasinoService casinoService,
+                            StealService stealService,
                             DrugsService drugsService, TelegramBot bot,
-                            PoliceDepartmentService policeDepartmentService,
-                            GuardDepartmentService guardDepartmentService,
-                            ChatAccountRepository chatAccountRepository,
-                            ChatAccountMapper chatAccountMapper, TelegramChatRepository telegramChatRepository,
+                            BotConfig botConfig,
+                            TelegramChatRepository telegramChatRepository,
                             PrivateChatService privateChatService, RoleService roleService,
-                            RoleProcessor roleProcessor) {
+                            RoleProcessor roleProcessor, CommandProcessor commandProcessor) {
         this.orderService = orderService;
         this.diceService = diceService;
         this.karmaService = karmaService;
         this.userService = userService;
         this.messagesService = messagesService;
         this.stealService = stealService;
-        this.guardService = guardService;
-        this.botConfig = botConfig;
-        this.casinoService = casinoService;
         this.drugsService = drugsService;
-        this.chatAccountRepository = chatAccountRepository;
-        this.chatAccountMapper = chatAccountMapper;
         this.telegramChatRepository = telegramChatRepository;
         this.privateChatService = privateChatService;
+        this.commandProcessor = commandProcessor;
         this.bot = bot;
-        this.policeDepartmentService = policeDepartmentService;
-        this.guardDepartmentService = guardDepartmentService;
         this.roleService = roleService;
         this.roleProcessor = roleProcessor;
         log.info("Bot Token: {}", botConfig.getToken());
@@ -221,48 +192,9 @@ public class MessagesListener implements UpdatesListener {
             log.info("Process karma update");
             executeAction(originAccount.getChat().getId(),
                     () -> karmaService.processKarmaUpdate(message, originAccount));
-        } else if (message.text() != null && botConfig.getCreditCommand().equals(message.text())) {
-            log.info("Print Credits");
-            executeAction(message.chat().id(), () -> printCredits(message));
-        } else if (message.text() != null && botConfig.getAutoReplyCommand().equals(message.text())) {
-            log.info("Create auto-reply");
+        } else if (commandProcessor.isCommandExists(message)) {
             executeAction(originAccount.getChat().getId(),
-                    () -> {
-                        orderService.createReplyOrder(originAccount);
-                        bot.execute(new DeleteMessage(message.chat().id(), message.messageId()));
-                    });
-        } else if (message.text() != null && botConfig.getRemovePlayBanCommand().equals(message.text())) {
-            log.info("remove play ban command");
-            executeAction(originAccount.getChat().getId(),
-                    () -> diceService.removePlayBan(originAccount));
-        } else if (message.text() != null && botConfig.getBuyGuardCommand().equals(message.text())) {
-            log.info("Buy guard request");
-            executeAction(originAccount.getChat().getId(),
-                    () -> guardService.buyGuard(originAccount));
-        } else if (message.text() != null && botConfig.getBuyCasinoCommand().equals(message.text())) {
-            log.info("Buy Casino request");
-            executeAction(originAccount.getChat().getId(),
-                    () -> processCasinoBuy(originAccount));
-        } else if (message.text() != null && botConfig.getBuyPoliceCommand().equals(message.text())) {
-            log.info("Buy police department request");
-            executeAction(originAccount.getChat().getId(),
-                    () -> processPdBuy(originAccount));
-        } else if (message.text() != null && botConfig.getMyStatsCommand().equals(message.text())) {
-            log.info("Print personal stats request");
-            executeAction(originAccount.getChat().getId(),
-                    () -> printPersonalStats(originAccount));
-        } else if (message.text() != null && botConfig.getBuyGuardDepartmentCommand().equals(message.text())) {
-            log.info("Buy Guard department request");
-            executeAction(originAccount.getChat().getId(),
-                    () -> processGdBuy(originAccount));
-        } else if (message.text() != null && botConfig.getSelectRoleCommand().equals(message.text())) {
-            log.info("Select role command from: {}", originAccount.getUser().getUsername());
-            executeAction(originAccount.getChat().getId(),
-                    () -> roleService.selectRoleRequest(originAccount));
-        } else if (message.text() != null && botConfig.getRoleActionsCommand().equals(message.text())) {
-            log.info("show role actions command from: {}", originAccount.getUser().getUsername());
-            executeAction(originAccount.getChat().getId(),
-                    () -> roleService.showRoleActions(originAccount));
+                    () -> commandProcessor.processCommand(message, originAccount));
         } else if (message.dice() != null) {
             log.info("Process dice");
             executeAction(originAccount.getChat().getId(),
@@ -277,153 +209,6 @@ public class MessagesListener implements UpdatesListener {
                     });
         }
 
-    }
-
-    private void processCasinoBuy(ChatAccount originAcc) {
-        if (casinoService.buyCasino(originAcc)) {
-            dropPoliceDepartmentIfExists(originAcc);
-            dropGuardIfExists(originAcc);
-        }
-    }
-
-    private void processPdBuy(ChatAccount originAcc) {
-        if (policeDepartmentService.buyPoliceDepartment(originAcc)) {
-            dropCasinoIfExists(originAcc);
-            dropGuardIfExists(originAcc);
-        }
-    }
-
-    private void processGdBuy(ChatAccount originAcc) {
-        if (guardDepartmentService.buyGuardDepartment(originAcc)) {
-            dropCasinoIfExists(originAcc);
-            dropPoliceDepartmentIfExists(originAcc);
-        }
-    }
-
-    private void dropGuardIfExists(ChatAccount originAcc) {
-        TelegramGuardDepartment gd = guardDepartmentService.findOrCreateTelegramGdByChatID(originAcc.getChat().getId());
-        if (gd.getOwner() != null && gd.getOwner().getId().equals(originAcc.getUser().getId())) {
-            guardDepartmentService.dropGuardOwner(originAcc.getChat().getId());
-            bot.execute(new SendMessage(originAcc.getChat().getId(),
-                    String.format("@%s більше не властник охороного агенства", originAcc.getUser().getUsername())));
-        }
-    }
-
-    private void dropCasinoIfExists(ChatAccount originAcc) {
-        TelegramCasino casino = casinoService.findOrCreateTelegramCasinoByChatID(originAcc.getChat().getId());
-        if (casino.getOwner() != null && casino.getOwner().getId().equals(originAcc.getUser().getId())) {
-            casinoService.dropCasinoOwner(originAcc.getChat().getId());
-            bot.execute(new SendMessage(originAcc.getChat().getId(),
-                    String.format("@%s більше не властник казино", originAcc.getUser().getUsername())));
-        }
-    }
-
-    private void dropPoliceDepartmentIfExists(ChatAccount originAcc) {
-        TelegramPoliceDepartment pd = policeDepartmentService.findOrCreateTelegramPdByChatID(originAcc.getChat().getId());
-        if (pd.getOwner() != null && pd.getOwner().getId().equals(originAcc.getUser().getId())) {
-            policeDepartmentService.dropPdOwner(originAcc.getChat().getId());
-            bot.execute(new SendMessage(originAcc.getChat().getId(),
-                    String.format("@%s більше не властник поліцейської ділянки", originAcc.getUser().getUsername())));
-        }
-    }
-
-    private void printPersonalStats(ChatAccount acc) {
-        StringBuilder sb = new StringBuilder().append("Показники для @")
-                .append(acc.getUser().getUsername())
-                .append("\nЧат: ")
-                .append(acc.getChat().getName())
-                .append("\n****************");
-
-        if (guardService.doesHaveGuard(acc)) {
-            sb.append("\nмає охорону до:\n");
-            sb.append(guardService.getGuardTillLabel(acc));
-        }
-        if (stealService.isInJail(acc)) {
-            sb.append("\nУ в`язниці до:\n");
-            sb.append(stealService.getJailTillLabel(acc));
-        }
-
-        List<TelegramDrugAction> drugs = drugsService.findActiveDrugDeals(acc);
-        if (!drugs.isEmpty()) {
-            sb.append("\nМає наркотики до:\n");
-            sb.append(drugs.stream()
-                    .max(Comparator.comparing(TelegramDrugAction::getExpires))
-                    .map(TelegramDrugAction::getExpires)
-                    .map(DateConverter::localDateTimeToStringLabel)
-                    .orElse(null));
-        }
-
-        sb.append("\nКредити: ").append(acc.getSocialCredit());
-        SendResponse response = bot.execute(new SendMessage(acc.getUser().getId(), sb.toString()));
-        if (response.isOk()) {
-            bot.execute(new SendMessage(acc.getChat().getId(), "Відправив стату в лічку"));
-        } else {
-            bot.execute(new SendMessage(acc.getChat().getId(),
-                    String.format("@%s напиши мені в лічку щоб отримувати ці сповіщення", acc.getUser().getUsername())));
-        }
-        log.info("response: {}", response);
-    }
-
-    private void printCredits(Message message) {
-        TelegramCasino casino = casinoService.findOrCreateTelegramCasinoByChatID(message.chat().id());
-        TelegramPoliceDepartment pd = policeDepartmentService.findOrCreateTelegramPdByChatID(message.chat().id());
-        TelegramGuardDepartment gd = guardDepartmentService.findOrCreateTelegramGdByChatID(message.chat().id());
-        List<String> lines = chatAccountRepository.findByChatId(message.chat().id()).stream()
-                .map(chatAccountMapper::toDto)
-                .filter(ChatAccount::isActive)
-                .sorted(Comparator.comparingInt(ChatAccount::getSocialCredit)
-                        .reversed())
-                .map(acc -> toStringInfo(acc, casino, pd, gd))
-                .collect(Collectors.toList());
-
-        if (lines.size() >= 1) {
-            lines.set(0, "\uD83E\uDD47" + lines.get(0));
-        }
-        if (lines.size() >= 2) {
-            lines.set(1, "\uD83E\uDD48" + lines.get(1));
-        }
-        if (lines.size() >= 3) {
-            lines.set(2, "\uD83E\uDD49" + lines.get(2));
-        }
-        String msg = lines.stream()
-                .reduce("", (m, u2) -> m + "\n" + u2);
-
-        log.info("Print Credits");
-
-        bot.execute(new SendMessage(message.chat().id(),
-                "\uD83C\uDFE6 Рахунки:\n" +
-                        msg +
-                        "\n****************" +
-                        "\nСумарний Банк: " +
-                        stealService.creditsSum(message.chat().id()) +
-                        "\nВартість казино: " + casino.getCurrentPrice() +
-                        "\nВартість поліції: " + pd.getCurrentPrice() +
-                        "\nВартість охоронки: " + gd.getCurrentPrice()));
-    }
-
-    private String toStringInfo(ChatAccount acc, TelegramCasino casino, TelegramPoliceDepartment pd, TelegramGuardDepartment gd) {
-        StringBuilder sb = new StringBuilder(String.format("%s : %s ", acc.getUser().getUsername(), acc.getSocialCredit()));
-        roleService.getAccRole(acc)
-                .ifPresent(r -> sb.append(r.getRole().getEmoji()));
-        if (guardService.doesHaveGuard(acc)) {
-            sb.append("⚔️");
-        }
-        if (stealService.isInJail(acc)) {
-            sb.append("⛓");
-        }
-        if (casino.getOwner() != null && casino.getOwner().getId().equals(acc.getUser().getId())) {
-            sb.append("\uD83C\uDFB0");
-        }
-        if (pd.getOwner() != null && pd.getOwner().getId().equals(acc.getUser().getId())) {
-            sb.append("\uD83D\uDE94");
-        }
-        if (gd.getOwner() != null && gd.getOwner().getId().equals(acc.getUser().getId())) {
-            sb.append("\uD83D\uDEE1");
-        }
-        if (!drugsService.findActiveDrugDeals(acc).isEmpty()) {
-            sb.append("\uD83D\uDC89");
-        }
-        return sb.toString();
     }
 
     private void updateChatMember(ChatMemberUpdated chat) {
