@@ -24,4 +24,5 @@ public class BotConfig {
     private String buyGuardDepartmentCommand;
     private String selectRoleCommand;
     private String roleActionsCommand;
+    private String infoCommand;
 }
