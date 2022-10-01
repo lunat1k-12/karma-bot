@@ -52,26 +52,32 @@ public class UserService {
             acc = chatAccountRepository.save(acc);
         }
 
-        boolean shouldUpdate = false;
+        boolean shouldUpdateUser = false;
         TelegramUserEntity userEntity = acc.getUser();
         if (message.from().firstName() != null && !message.from().firstName().equals(userEntity.getFirstName())) {
             userEntity.setFirstName(message.from().firstName());
-            shouldUpdate = true;
+            shouldUpdateUser = true;
         }
 
         if (message.from().lastName() != null && !message.from().lastName().equals(userEntity.getLastName())) {
             userEntity.setLastName(message.from().lastName());
-            shouldUpdate = true;
+            shouldUpdateUser = true;
         }
 
         if (message.from().username() != null && !message.from().username().equals(userEntity.getUsername())) {
             userEntity.setUsername(message.from().username());
-            shouldUpdate = true;
+            shouldUpdateUser = true;
         }
 
-        if (shouldUpdate) {
+        if (shouldUpdateUser) {
             acc.setUser(telegramUserRepository.save(userEntity));
         }
+
+        if (!message.chat().title().equals(acc.getChat().getName())) {
+            acc.getChat().setName(message.chat().title());
+            telegramChatRepository.save(acc.getChat());
+        }
+
         return chatAccountMapper.toDto(acc);
     }
 
