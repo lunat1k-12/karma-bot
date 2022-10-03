@@ -16,7 +16,7 @@ public class InfoCommand implements Command {
 
     @Override
     public void processCommand(Message message, ChatAccount originAccount) {
-        infoService.printInfo(originAccount.getChat().getId());
+        infoService.printInfo(originAccount.getChat().getId(), originAccount.getChat().getName());
     }
 
     @Override

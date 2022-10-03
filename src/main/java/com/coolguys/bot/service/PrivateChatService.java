@@ -41,7 +41,7 @@ public class PrivateChatService {
 
         if (user == null) {
             userService.createNewUser(message.from());
-            infoService.printInfo(message.chat().id());
+            infoService.printInfo(message.chat().id(), "Karma bot");
         } else if (accounts.size() > 0){
             bot.execute(new SendMessage(message.chat().id(), "Тут ти будеш отримувати персональні сповіщення з чатів"));
         }
