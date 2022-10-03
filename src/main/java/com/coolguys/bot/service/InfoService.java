@@ -24,7 +24,7 @@ public class InfoService {
     @Value("classpath:instructions.txt")
     private Resource resource;
 
-    public void printInfo(Long chatId) {
+    public void printInfo(Long chatId, String chatTitle) {
         try {
             String text = new BufferedReader(
                     new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))
@@ -38,7 +38,9 @@ public class InfoService {
                     .replace("${buyPolice}", botConfig.getBuyPoliceCommand())
                     .replace("${buyGuardDep}", botConfig.getBuyGuardDepartmentCommand())
                     .replace("${selectRole}", botConfig.getSelectRoleCommand())
-                    .replace("${roleActions}", botConfig.getRoleActionsCommand())));
+                    .replace("${roleActions}", botConfig.getRoleActionsCommand())
+                    .replace("${myStats}", botConfig.getMyStatsCommand())
+                    .replace("${chatTitle}", chatTitle)));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
