@@ -25,6 +25,8 @@ import com.pengrad.telegrambot.model.ChatMemberUpdated;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.User;
+import com.pengrad.telegrambot.model.request.ChatAction;
+import com.pengrad.telegrambot.request.SendChatAction;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendSticker;
 import lombok.extern.slf4j.Slf4j;
@@ -99,6 +101,10 @@ public class MessagesListener implements UpdatesListener {
 
     public void sendSticker(Long chatId, String stickerId) {
         bot.execute(new SendSticker(chatId, stickerId));
+    }
+
+    public void sendChatAction(Long chatId, ChatAction action) {
+        bot.execute(new SendChatAction(chatId, action));
     }
 
     private void executeAction(Long chatId, Runnable command) {

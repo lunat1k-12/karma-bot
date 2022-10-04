@@ -18,6 +18,7 @@ import com.coolguys.bot.service.GuardDepartmentService;
 import com.coolguys.bot.service.PoliceDepartmentService;
 import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.UserService;
+import com.pengrad.telegrambot.model.request.ChatAction;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -91,7 +92,8 @@ public class ScheduledTasksService {
 
             messagesListener.sendMessage(chatId, String.format("Поліція вирішила обшукати @%s", userToCheck.getUser().getUsername()));
             messagesListener.sendSticker(chatId, POLICE_CHECK_STICKER);
-            Thread.sleep(1000);
+            messagesListener.sendChatAction(chatId, ChatAction.typing);
+            Thread.sleep(2000);
 
             if (drugsService.findActiveDrugDeals(userToCheck).size() > 0) {
                 log.info("Drugs found in {} place", userToCheck.getUser().getUsername());
