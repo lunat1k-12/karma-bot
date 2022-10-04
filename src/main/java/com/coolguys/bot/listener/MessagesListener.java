@@ -12,6 +12,7 @@ import com.coolguys.bot.service.MessagesService;
 import com.coolguys.bot.service.OrderService;
 import com.coolguys.bot.service.PrivateChatService;
 import com.coolguys.bot.service.StealService;
+import com.coolguys.bot.service.ThiefInvestigateService;
 import com.coolguys.bot.service.UserService;
 import com.coolguys.bot.service.command.CommandProcessor;
 import com.coolguys.bot.service.role.RoleProcessor;
@@ -45,6 +46,7 @@ import static com.coolguys.bot.dto.QueryDataDto.REPLY_ORDER_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.ROLE_ACTION_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.ROLE_SELECT_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.STEAL_TYPE;
+import static com.coolguys.bot.dto.QueryDataDto.THIEF_INVESTIGATE_TYPE;
 
 @Slf4j
 @Component
@@ -61,6 +63,7 @@ public class MessagesListener implements UpdatesListener {
     private final RoleService roleService;
     private final RoleProcessor roleProcessor;
     private final CommandProcessor commandProcessor;
+    private final ThiefInvestigateService thiefInvestigateService;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -74,7 +77,7 @@ public class MessagesListener implements UpdatesListener {
                             UserService userService, MessagesService messagesService,
                             StealService stealService,
                             DrugsService drugsService, TelegramBot bot,
-                            BotConfig botConfig,
+                            BotConfig botConfig, ThiefInvestigateService thiefInvestigateService,
                             TelegramChatRepository telegramChatRepository,
                             PrivateChatService privateChatService, RoleService roleService,
                             RoleProcessor roleProcessor, CommandProcessor commandProcessor) {
@@ -88,6 +91,7 @@ public class MessagesListener implements UpdatesListener {
         this.telegramChatRepository = telegramChatRepository;
         this.privateChatService = privateChatService;
         this.commandProcessor = commandProcessor;
+        this.thiefInvestigateService = thiefInvestigateService;
         this.bot = bot;
         this.roleService = roleService;
         this.roleProcessor = roleProcessor;
@@ -167,6 +171,10 @@ public class MessagesListener implements UpdatesListener {
                         executeAction(originAcc.getChat().getId(),
                                 () -> roleProcessor.processAction(originAcc, dto));
                         break;
+                    case THIEF_INVESTIGATE_TYPE:
+                        log.info("Thief investigate type");
+                        executeAction(originAcc.getChat().getId(),
+                                () -> thiefInvestigateService.processInvestigate(originAcc, dto));
                 }
             }
         });
