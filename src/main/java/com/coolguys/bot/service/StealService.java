@@ -18,6 +18,8 @@ import com.coolguys.bot.repository.ChatAccountRepository;
 import com.coolguys.bot.repository.TelegramBanRecordRepository;
 import com.coolguys.bot.repository.TelegramOrderRepository;
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.model.request.ChatAction;
+import com.pengrad.telegrambot.request.SendChatAction;
 import com.pengrad.telegrambot.request.SendDice;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendSticker;
@@ -132,6 +134,7 @@ public class StealService {
 
             bot.execute(new SendMessage(originAcc.getChat().getId(),
                     String.format("Невідомий намагається вкрасти у @%s", targetAcc.getUser().getUsername())));
+            bot.execute(new SendChatAction(originAcc.getChat().getId(), ChatAction.typing));
 
 
             Thread.sleep(PAUSE_MILLIS);
@@ -146,10 +149,12 @@ public class StealService {
             }
 
             bot.execute(new SendMessage(originAcc.getChat().getId(), String.format("Складність крадіжки: %s", difficulty)));
+            bot.execute(new SendChatAction(originAcc.getChat().getId(), ChatAction.choose_sticker));
             Thread.sleep(PAUSE_MILLIS);
 
             SendResponse response = bot.execute(new SendDice(originAcc.getChat().getId())
                     .emoji("\uD83C\uDFB2"));
+            bot.execute(new SendChatAction(originAcc.getChat().getId(), ChatAction.typing));
             Thread.sleep(PAUSE_MILLIS);
             if (response.message().dice().value() >= difficulty) {
                 int half = Double.valueOf(Math.floor(targetAcc.getSocialCredit() / 2d)).intValue();
