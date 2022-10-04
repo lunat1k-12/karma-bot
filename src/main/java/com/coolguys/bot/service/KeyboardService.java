@@ -106,6 +106,7 @@ public class KeyboardService {
                     QueryDataDto query = QueryDataDto.builder()
                             .type(type)
                             .option(user.getId().toString())
+                            .originalAccId(originalAccId)
                             .build();
                     keys[i][j] = new InlineKeyboardButton(user.getUser().getUsername()).callbackData(gson.toJson(query));
                     usersIndex++;
