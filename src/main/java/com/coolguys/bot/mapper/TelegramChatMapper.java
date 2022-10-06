@@ -15,6 +15,7 @@ public class TelegramChatMapper implements EntityToDtoMapper<TelegramChatEntity,
                 .premium(entity.getPremium())
                 .id(entity.getId())
                 .name(entity.getName())
+                .active(entity.getActive())
                 .build();
     }
 
@@ -27,6 +28,7 @@ public class TelegramChatMapper implements EntityToDtoMapper<TelegramChatEntity,
                 .id(dto.getId())
                 .name(dto.getName())
                 .premium(dto.getPremium())
+                .active(dto.getActive())
                 .build();
     }
 }

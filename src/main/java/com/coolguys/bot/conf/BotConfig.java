@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class BotConfig {
 
+    private String username;
     private String token;
     private String creditCommand;
     private String autoReplyCommand;

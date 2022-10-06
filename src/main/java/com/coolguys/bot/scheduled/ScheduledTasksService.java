@@ -30,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.stream.StreamSupport;
 
 import static com.coolguys.bot.service.StealService.POLICE_STICKER;
 
@@ -65,7 +64,7 @@ public class ScheduledTasksService {
     public void drugRaid() {
         log.info("Initiate drug raid");
         try {
-            StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+            telegramChatRepository.findAllActive().stream()
                     .peek(ch -> log.info("Search for drugs in {}", ch.getName()))
                     .map(TelegramChatEntity::getId)
                     .forEach(this::chatDrugRaid);
@@ -158,7 +157,7 @@ public class ScheduledTasksService {
     public void getTopAndWorstUser() {
         try {
             log.info("Initiate Top/Worst");
-            StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+            telegramChatRepository.findAllActive().stream()
                     .map(TelegramChatEntity::getId)
                     .forEach(this::getTopAndWorstUser);
 
@@ -204,7 +203,7 @@ public class ScheduledTasksService {
     public void processMostActiveUser() {
         try {
             log.info("Initiate Most Active");
-            StreamSupport.stream(telegramChatRepository.findAll().spliterator(), false)
+            telegramChatRepository.findAllActive().stream()
                     .map(TelegramChatEntity::getId)
                     .forEach(this::processChatMostActiveUser);
 

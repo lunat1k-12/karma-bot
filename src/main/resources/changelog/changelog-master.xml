@@ -56,4 +56,5 @@
     <include file="/changelog/changes/v2-updates/insert-drugs-update.xml"/>
     <include file="/changelog/changes/v2-updates/create-investigate-action-table.xml"/>
     <include file="/changelog/changes/v2-updates/insert-thief-investigate-note.xml"/>
+    <include file="/changelog/changes/v2-updates/alter-telegram-chat-table.xml"/>
 </databaseChangeLog>

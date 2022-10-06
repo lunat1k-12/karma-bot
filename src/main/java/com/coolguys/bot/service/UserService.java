@@ -1,5 +1,6 @@
 package com.coolguys.bot.service;
 
+import com.coolguys.bot.conf.BotConfig;
 import com.coolguys.bot.dto.ChatAccount;
 import com.coolguys.bot.dto.UserStatus;
 import com.coolguys.bot.entity.ChatAccountEntity;
@@ -26,9 +27,20 @@ public class UserService {
     private final ChatAccountMapper chatAccountMapper;
     private final TelegramUserRepository telegramUserRepository;
     private final TelegramChatRepository telegramChatRepository;
+    private final BotConfig botConfig;
 
-    public void deactivateChatAccount(Long userId, Long chatId) {
-        ChatAccountEntity entity = chatAccountRepository.findByUserIdAndChatId(userId, chatId)
+    public void deactivateChatAccount(User user, Long chatId) {
+
+        if (user.isBot() && botConfig.getUsername().equals(user.username())) {
+            telegramChatRepository.findById(chatId)
+                    .ifPresent(chatEntity -> {
+                        chatEntity.setActive(false);
+                        telegramChatRepository.save(chatEntity);
+                    });
+            return;
+        }
+
+        ChatAccountEntity entity = chatAccountRepository.findByUserIdAndChatId(user.id(), chatId)
                 .orElse(null);
         if (entity != null) {
             entity.setStatus(UserStatus.INACTIVE.getId());
@@ -73,8 +85,18 @@ public class UserService {
             acc.setUser(telegramUserRepository.save(userEntity));
         }
 
+        boolean shouldUpdateChat = false;
         if (!message.chat().title().equals(acc.getChat().getName())) {
             acc.getChat().setName(message.chat().title());
+            shouldUpdateChat = true;
+        }
+
+        if (!acc.getChat().getActive()) {
+            acc.getChat().setActive(true);
+            shouldUpdateChat = true;
+        }
+
+        if (shouldUpdateChat) {
             telegramChatRepository.save(acc.getChat());
         }
 
@@ -97,6 +119,7 @@ public class UserService {
         TelegramChatEntity chatEntity = telegramChatRepository.findById(query.message().chat().id())
                 .orElseGet(() -> telegramChatRepository.save(TelegramChatEntity.builder()
                         .premium(false)
+                        .active(true)
                         .name(query.message().chat().title())
                         .id(query.message().chat().id())
                         .build()));
@@ -121,6 +144,7 @@ public class UserService {
         TelegramChatEntity chatEntity = telegramChatRepository.findById(message.chat().id())
                 .orElseGet(() -> telegramChatRepository.save(TelegramChatEntity.builder()
                         .premium(false)
+                        .active(true)
                         .name(message.chat().title())
                         .id(message.chat().id())
                         .build()));
