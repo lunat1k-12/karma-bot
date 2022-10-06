@@ -5,7 +5,6 @@ import com.coolguys.bot.mapper.TelegramChatMapper;
 import com.coolguys.bot.repository.TelegramChatRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.GetChat;
-import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.GetChatResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,8 +35,6 @@ public class ScheduledCheckChats {
             log.info("Mark {} as inactive", chat.getName());
             chat.setActive(false);
             telegramChatRepository.save(telegramChatMapper.toEntity(chat));
-        } else {
-            bot.execute(new SendMessage(chat.getId(), "Hello"));
         }
     }
 }
