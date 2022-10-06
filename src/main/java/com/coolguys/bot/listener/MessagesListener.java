@@ -201,7 +201,7 @@ public class MessagesListener implements UpdatesListener {
         if (message.leftChatMember() != null) {
             log.info("Deactivate user");
             executeAction(message.chat().id(),
-                    () -> userService.deactivateChatAccount(message.leftChatMember().id(), message.chat().id()));
+                    () -> userService.deactivateChatAccount(message.leftChatMember(), message.chat().id()));
         } else if (isValidForCreditsCount(message)) {
             log.info("Process karma update");
             executeAction(originAccount.getChat().getId(),
@@ -228,12 +228,17 @@ public class MessagesListener implements UpdatesListener {
     private void updateChatMember(ChatMemberUpdated chat) {
         log.info("Process new chat");
 
-        telegramChatRepository.findById(chat.chat().id())
+        TelegramChatEntity entity = telegramChatRepository.findById(chat.chat().id())
                 .orElseGet(() -> telegramChatRepository.save(TelegramChatEntity.builder()
                         .name(chat.chat().title())
                         .id(chat.chat().id())
+                        .active(true)
                         .premium(false)
                         .build()));
+        if (!entity.getActive()) {
+            entity.setActive(true);
+            telegramChatRepository.save(entity);
+        }
 
         bot.execute(new SendMessage(chat.chat().id(), "Привіт хлопці"));
     }

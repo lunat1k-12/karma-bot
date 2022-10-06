@@ -11,4 +11,5 @@ public class TelegramChat {
     private Long id;
     private String name;
     private Boolean premium;
+    private Boolean active;
 }

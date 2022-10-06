@@ -23,4 +23,7 @@ public class TelegramChatEntity {
 
     @Column(name = "premium")
     private Boolean premium;
+
+    @Column(name = "active")
+    private Boolean active;
 }
