@@ -194,6 +194,7 @@ public class ScheduledTasksService {
         ChatAccount topUser = users.get(topIndex);
         topUser.plusCredit(TOP_PRICE);
         chatAccountRepository.save(chatAccountMapper.toEntity(topUser));
+        log.info("getTopAndWorstUser - done for chat: {}", chatId);
     }
 
     @Scheduled(cron = "00 00 08 * * MON")
