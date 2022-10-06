@@ -169,9 +169,11 @@ public class ScheduledTasksService {
     }
 
     private void getTopAndWorstUser(Long chatId) {
+        log.info("getTopAndWorstUser - start for chat: {}", chatId);
         List<ChatAccount> users = userService.findActiveAccByChatId(chatId);
 
         if (users.isEmpty()) {
+            log.info("getTopAndWorstUser - users is empty for chat: {}", chatId);
             return;
         }
 
