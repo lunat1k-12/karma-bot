@@ -85,8 +85,18 @@ public class UserService {
             acc.setUser(telegramUserRepository.save(userEntity));
         }
 
+        boolean shouldUpdateChat = false;
         if (!message.chat().title().equals(acc.getChat().getName())) {
             acc.getChat().setName(message.chat().title());
+            shouldUpdateChat = true;
+        }
+
+        if (!acc.getChat().getActive()) {
+            acc.getChat().setActive(true);
+            shouldUpdateChat = true;
+        }
+
+        if (shouldUpdateChat) {
             telegramChatRepository.save(acc.getChat());
         }
 
