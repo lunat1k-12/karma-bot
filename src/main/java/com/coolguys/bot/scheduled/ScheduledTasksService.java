@@ -169,9 +169,11 @@ public class ScheduledTasksService {
     }
 
     private void getTopAndWorstUser(Long chatId) {
+        log.info("getTopAndWorstUser - start for chat: {}", chatId);
         List<ChatAccount> users = userService.findActiveAccByChatId(chatId);
 
         if (users.isEmpty()) {
+            log.info("getTopAndWorstUser - users is empty for chat: {}", chatId);
             return;
         }
 
@@ -194,6 +196,7 @@ public class ScheduledTasksService {
         ChatAccount topUser = users.get(topIndex);
         topUser.plusCredit(TOP_PRICE);
         chatAccountRepository.save(chatAccountMapper.toEntity(topUser));
+        log.info("getTopAndWorstUser - done for chat: {}", chatId);
     }
 
     @Scheduled(cron = "00 00 08 * * MON")

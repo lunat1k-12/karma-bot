@@ -17,7 +17,7 @@ public class CommandProcessor {
 
     public void processCommand(Message message, ChatAccount originAccount) {
         commands.stream()
-                .filter(c -> c.getCommand().equals(message.text()))
+                .filter(c -> c.getCommand().equals(message.text()) || concatCommand(c.getCommand()).equals(message.text()))
                 .forEach(c -> {
                     log.info("Process {} command", c.getCommand());
                     c.processCommand(message, originAccount);
@@ -31,6 +31,9 @@ public class CommandProcessor {
 
         return commands.stream()
                 .map(Command::getCommand)
-                .anyMatch(c -> c.equals(message.text()));
+                .anyMatch(c -> c.equals(message.text()) || concatCommand(c).equals(message.text()));
+    }
+    private String concatCommand(String command) {
+        return command.substring(0, command.indexOf('@'));
     }
 }
