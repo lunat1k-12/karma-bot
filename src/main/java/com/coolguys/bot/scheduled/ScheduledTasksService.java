@@ -152,7 +152,7 @@ public class ScheduledTasksService {
         }
     }
 
-    @Scheduled(cron = "00 00 07 * * *")
+    @Scheduled(cron = "00 30 08 * * *")
     @Async
     public void getTopAndWorstUser() {
         try {
@@ -182,10 +182,10 @@ public class ScheduledTasksService {
         int bottomIndex;
         do {
             bottomIndex = random.nextInt(users.size());
-        } while (bottomIndex == topIndex);
+        } while (bottomIndex == topIndex || users.size() == 1);
 
-        log.info("Top user - {}, chatId: {}", users.get(topIndex).getUser().getUsername(), chatId);
-        log.info("Bottom user - {}, chatId: {}", users.get(bottomIndex).getUser().getUsername(), chatId);
+        log.info("getTopAndWorstUser - Top user - {}, chatId: {}", users.get(topIndex).getUser().getUsername(), chatId);
+        log.info("getTopAndWorstUser - Bottom user - {}, chatId: {}", users.get(bottomIndex).getUser().getUsername(), chatId);
 
         messagesListener.sendMessage(chatId, String.format("Шановне Панство, Увага!\nТоп хлопак на сьогодні: @%s\n" +
                 "він отримує %s кредитів", users.get(topIndex).getUser().getUsername(), TOP_PRICE));
