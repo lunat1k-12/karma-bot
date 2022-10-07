@@ -36,5 +36,6 @@ public class ScheduledCheckChats {
             chat.setActive(false);
             telegramChatRepository.save(telegramChatMapper.toEntity(chat));
         }
+        log.info("{} is still active", chat.getName());
     }
 }

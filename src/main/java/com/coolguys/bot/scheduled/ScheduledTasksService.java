@@ -152,7 +152,7 @@ public class ScheduledTasksService {
         }
     }
 
-    @Scheduled(cron = "00 30 08 * * *")
+    @Scheduled(cron = "00 15 09 * * *")
     @Async
     public void getTopAndWorstUser() {
         try {
@@ -182,7 +182,7 @@ public class ScheduledTasksService {
         int bottomIndex;
         do {
             bottomIndex = random.nextInt(users.size());
-        } while (bottomIndex == topIndex || users.size() == 1);
+        } while (bottomIndex == topIndex && users.size() > 1);
 
         log.info("getTopAndWorstUser - Top user - {}, chatId: {}", users.get(topIndex).getUser().getUsername(), chatId);
         log.info("getTopAndWorstUser - Bottom user - {}, chatId: {}", users.get(bottomIndex).getUser().getUsername(), chatId);
