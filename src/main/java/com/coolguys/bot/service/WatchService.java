@@ -15,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,8 +40,19 @@ public class WatchService {
             return;
         }
 
-        if (gainMoneyActionRepository.findAllByAccIdAndDate(acc.getId(), LocalDateTime.now()).size() > 0) {
-            bot.execute(new SendMessage(acc.getChat().getId(), "Зараз не можеш це зробити. Дай їм відпочити."));
+        List<GainMoneyActionEntity> entities = gainMoneyActionRepository.findAllByAccIdAndDate(acc.getId(), LocalDateTime.now());
+        if (entities.size() > 0) {
+            LocalDateTime lastExpire = entities.stream()
+                    .min(Comparator.comparing(GainMoneyActionEntity::getExpires))
+                    .map(GainMoneyActionEntity::getExpires)
+                    .orElse(null);
+
+            long minutes = ChronoUnit.MINUTES.between(LocalDateTime.now(), lastExpire.plusHours(3L));
+            double hoursDiff = Math.floor(minutes / 60d);
+            bot.execute(new SendMessage(acc.getChat().getId(),
+                    String.format("Зараз не можеш це зробити. Дай їм відпочити.\nПродовжити можна буде через %d годин та %d хвилин",
+                            (int) hoursDiff,
+                            Double.valueOf(minutes - (hoursDiff * 60)).intValue())));
             return;
         }
 

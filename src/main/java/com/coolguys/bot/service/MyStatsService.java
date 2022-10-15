@@ -2,6 +2,8 @@ package com.coolguys.bot.service;
 
 import com.coolguys.bot.dto.ChatAccount;
 import com.coolguys.bot.dto.TelegramDrugAction;
+import com.coolguys.bot.mapper.ChatAccountMapper;
+import com.coolguys.bot.repository.ChatAccountRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.SendResponse;
@@ -20,6 +22,8 @@ public class MyStatsService {
     private final GuardService guardService;
     private final StealService stealService;
     private final DrugsService drugsService;
+    private final ChatAccountRepository chatAccountRepository;
+    private final ChatAccountMapper chatAccountMapper;
     private final TelegramBot bot;
 
     public void printPersonalStats(ChatAccount acc) {
@@ -59,8 +63,11 @@ public class MyStatsService {
             bot.execute(new SendMessage(acc.getChat().getId(), "Відправив стату в лічку"));
             return true;
         } else {
+            ChatAccount targetAcc = chatAccountRepository.findByUserIdAndChatId(targetChatId, acc.getChat().getId())
+                    .map(chatAccountMapper::toDto)
+                    .orElseThrow();
             bot.execute(new SendMessage(acc.getChat().getId(),
-                    String.format("@%s напиши мені в лічку щоб отримувати ці сповіщення", acc.getUser().getUsername())));
+                    String.format("@%s напиши мені в лічку щоб отримувати ці сповіщення", targetAcc.getUser().getUsername())));
             return false;
         }
     }
