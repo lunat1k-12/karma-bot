@@ -15,6 +15,7 @@ import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.ThiefInvestigateService;
 import com.coolguys.bot.service.UserService;
 import com.coolguys.bot.service.command.CommandProcessor;
+import com.coolguys.bot.service.external.YesNoService;
 import com.coolguys.bot.service.role.RoleProcessor;
 import com.coolguys.bot.service.role.RoleService;
 import com.google.gson.Gson;
@@ -64,6 +65,7 @@ public class MessagesListener implements UpdatesListener {
     private final RoleProcessor roleProcessor;
     private final CommandProcessor commandProcessor;
     private final ThiefInvestigateService thiefInvestigateService;
+    private final YesNoService yesNoService;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -80,7 +82,8 @@ public class MessagesListener implements UpdatesListener {
                             BotConfig botConfig, ThiefInvestigateService thiefInvestigateService,
                             TelegramChatRepository telegramChatRepository,
                             PrivateChatService privateChatService, RoleService roleService,
-                            RoleProcessor roleProcessor, CommandProcessor commandProcessor) {
+                            RoleProcessor roleProcessor, CommandProcessor commandProcessor,
+                            YesNoService yesNoService) {
         this.orderService = orderService;
         this.diceService = diceService;
         this.karmaService = karmaService;
@@ -92,6 +95,7 @@ public class MessagesListener implements UpdatesListener {
         this.privateChatService = privateChatService;
         this.commandProcessor = commandProcessor;
         this.thiefInvestigateService = thiefInvestigateService;
+        this.yesNoService = yesNoService;
         this.bot = bot;
         this.roleService = roleService;
         this.roleProcessor = roleProcessor;
@@ -215,6 +219,8 @@ public class MessagesListener implements UpdatesListener {
                     () -> diceService.processDice(message, originAccount));
         } else if (message.text() != null) {
             log.info("Process text");
+            executeAction(originAccount.getChat().getId(),
+                    () -> yesNoService.answerIfNeeded(message, originAccount.getChat().getId()));
             executeAction(originAccount.getChat().getId(),
                     () -> {
                         messagesService.saveMessage(originAccount, message);
