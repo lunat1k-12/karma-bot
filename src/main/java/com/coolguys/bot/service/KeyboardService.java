@@ -76,7 +76,7 @@ public class KeyboardService {
     }
 
     public InlineKeyboardMarkup getTargetAccSelectionPersonKeyboard(Long chatId, Long originalAccId, String type) {
-        List<ChatAccount> users = chatAccountRepository.findByChatId(chatId)
+        List<ChatAccount> users = chatAccountRepository.findActiveByChatId(chatId)
                 .stream()
                 .filter(acc -> !acc.getId().equals(originalAccId))
                 .map(chatAccountMapper::toDto)

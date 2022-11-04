@@ -19,6 +19,9 @@ public interface ChatAccountRepository extends CrudRepository<ChatAccountEntity,
     @Query("select ca from chat_account ca where ca.chat.id = :chatId")
     List<ChatAccountEntity> findByChatId(@Param("chatId") Long chatId);
 
+    @Query("select ca from chat_account ca where ca.chat.id = :chatId and ca.status = 'active'")
+    List<ChatAccountEntity> findActiveByChatId(@Param("chatId") Long chatId);
+
     @Query("select ca from chat_account ca where ca.user.id = :userId")
     List<ChatAccountEntity> findByUserId(@Param("userId") Long userId);
 }
