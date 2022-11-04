@@ -47,7 +47,7 @@ public class WatchService {
                     .map(GainMoneyActionEntity::getExpires)
                     .orElse(null);
 
-            long minutes = ChronoUnit.MINUTES.between(LocalDateTime.now(), lastExpire.plusHours(3L));
+            long minutes = ChronoUnit.MINUTES.between(LocalDateTime.now(), lastExpire);
             double hoursDiff = Math.floor(minutes / 60d);
             bot.execute(new SendMessage(acc.getChat().getId(),
                     String.format("Зараз не можеш це зробити. Дай їм відпочити.\nПродовжити можна буде через %d годин та %d хвилин",
