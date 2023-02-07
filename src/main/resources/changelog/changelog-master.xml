@@ -58,4 +58,10 @@
     <include file="/changelog/changes/v2-updates/insert-thief-investigate-note.xml"/>
     <include file="/changelog/changes/v2-updates/alter-telegram-chat-table.xml"/>
     <include file="/changelog/changes/v2-updates/insert-yes-no-note.xml"/>
+    <!--poll-->
+    <include file="/changelog/changes/v3-updates/create-poll-table.xml"/>
+    <include file="/changelog/changes/v3-updates/create-poll-vote-table.xml"/>
+    <include file="/changelog/changes/v3-updates/alter-poll-table.xml"/>
+    <include file="/changelog/changes/v3-updates/drop-poll-vote-table.xml"/>
+    <include file="/changelog/changes/v3-updates/insert-poll-note.xml"/>
 </databaseChangeLog>
