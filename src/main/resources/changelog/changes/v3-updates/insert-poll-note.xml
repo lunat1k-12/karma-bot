@@ -5,13 +5,13 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
          http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
 
-    <changeSet id="revision-2" author="evgen.chemeris">
+    <changeSet id="revision-3" author="evgen.chemeris">
         <insert tableName="update_note">
             <column name="status" value="waiting"/>
             <column name="message">
                 <![CDATA[UPD:
 Тепер час від часу пудуть проходити опитування з метою вгадати автора раптового повідомлення. Якщо більшість відповість вірно, всі отримають по +50 кредитів.
-Якщо ні, всі отримають по -50.]]>
+Якщо ні, всі отримають по -50. На опитування дається 2 хвилини.]]>
             </column>
         </insert>
     </changeSet>
