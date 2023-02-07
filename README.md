@@ -18,4 +18,4 @@ System variable with telegram bot token needed:
 
 ### Run command
 
-`./gradlew bootRun --args='--spring.profiles.active=local`
+`./gradlew bootRun --args='--spring.profiles.active=local'`
