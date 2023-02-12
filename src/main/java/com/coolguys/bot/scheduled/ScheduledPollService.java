@@ -112,12 +112,12 @@ public class ScheduledPollService {
                 .type(quiz)
                 .correctOptionId(rightIndex)
                 .isAnonymous(false)
-                .explanation("У вас є 2 хвилини на відповідь"));
+                .explanation("У вас є 5 хвилин на відповідь"));
 
         poll.setTelegramPollId(response.message().messageId().toString());
         pollRepository.save(pollMapper.toEntity(poll));
         log.info("New Poll created in chat {}, for message id {}", chat.getName(), msg.getId());
-        scheduledExecutor.schedule(this::processActivePolls, 2, TimeUnit.MINUTES);
+        scheduledExecutor.schedule(this::processActivePolls, 5, TimeUnit.MINUTES);
     }
 
     private void processActivePolls() {
