@@ -55,7 +55,7 @@ public class ScheduledPollService {
 
     private final ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(5);
 
-    @Scheduled(cron = "00 00 11,13,14,17,19 * * *")
+    @Scheduled(cron = "00 00 11,12,14,17,19 * * *")
     @Async
     public void processPolls() {
         telegramChatRepository.findAllActive().stream()
