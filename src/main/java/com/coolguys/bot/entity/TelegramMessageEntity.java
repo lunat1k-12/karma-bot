@@ -38,4 +38,7 @@ public class TelegramMessageEntity {
 
     @Column(name = "chat_id")
     private Long chatId;
+
+    @Column(name = "language")
+    private String language;
 }

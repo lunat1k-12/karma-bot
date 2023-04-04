@@ -17,4 +17,9 @@ public interface TelegramMessageRepository extends CrudRepository<TelegramMessag
     List<TelegramMessageEntity> findByChatIdAndUserIdsAndDate(@Param("chatId") Long chatId,
                                                               @Param("ids") List<Long> ids,
                                                               @Param("from") LocalDateTime from);
+
+    @Query("select tm from telegram_message tm where tm.chatId = :chatId and tm.user.id = :id and tm.date > :from")
+    List<TelegramMessageEntity> findByUserId(@Param("chatId") Long chatId,
+                                             @Param("id") Long id,
+                                             @Param("from") LocalDateTime from);
 }

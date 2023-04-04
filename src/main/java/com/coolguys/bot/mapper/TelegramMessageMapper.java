@@ -2,6 +2,7 @@ package com.coolguys.bot.mapper;
 
 import com.coolguys.bot.dto.TelegramMessage;
 import com.coolguys.bot.entity.TelegramMessageEntity;
+import com.coolguys.bot.service.external.Language;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,7 @@ public class TelegramMessageMapper implements EntityToDtoMapper<TelegramMessageE
                 .user(telegramUserMapper.toDto(entity.getUser()))
                 .id(entity.getId())
                 .chatId(entity.getChatId())
+                .language(Language.getByCode(entity.getLanguage()))
                 .build();
     }
 
@@ -29,6 +31,7 @@ public class TelegramMessageMapper implements EntityToDtoMapper<TelegramMessageE
                 .date(dto.getDate())
                 .id(dto.getId())
                 .user(telegramUserMapper.toEntity(dto.getUser()))
+                .language(dto.getLanguage().getCode())
                 .build();
     }
 }
