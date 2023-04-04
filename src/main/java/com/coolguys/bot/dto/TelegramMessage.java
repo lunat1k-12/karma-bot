@@ -1,5 +1,6 @@
 package com.coolguys.bot.dto;
 
+import com.coolguys.bot.service.external.Language;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -15,4 +16,5 @@ public class TelegramMessage {
     private String message;
     private LocalDateTime date;
     private Long chatId;
+    private Language language;
 }
