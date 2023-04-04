@@ -74,7 +74,7 @@ public class RoleService {
         log.info("Options sent");
     }
 
-    public void processRoleSelection(ChatAccount originAcc, QueryDataDto dto) {
+    public void processRoleSelection(ChatAccount originAcc, QueryDataDto dto, Integer messageId) {
         if (!originAcc.getId().equals(dto.getOriginalAccId())) {
             log.info("Invalid user click");
             return;
@@ -95,6 +95,7 @@ public class RoleService {
             log.info("Too much {}", selectedRole.getLabel());
             bot.execute(new SendMessage(originAcc.getChat().getId(),
                     String.format("Занадто багато гравців у ролі '%s'\nОбери іншу", selectedRole.getLabel())));
+            keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(), messageId);
             return;
         }
 
@@ -105,6 +106,7 @@ public class RoleService {
         bot.execute(new SendMessage(originAcc.getChat().getId(),
                 String.format("@%s тепер %s", originAcc.getUser().getUsername(), selectedRole.getLabel())));
         log.info("Role selection applied for {}", originAcc.getUser().getUsername());
+        keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(), messageId);
     }
 
     private void updateRole(Role role, RoleType selectedRole) {

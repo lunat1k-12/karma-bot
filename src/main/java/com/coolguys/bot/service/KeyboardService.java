@@ -7,8 +7,11 @@ import com.coolguys.bot.dto.TelegramUser;
 import com.coolguys.bot.mapper.ChatAccountMapper;
 import com.coolguys.bot.repository.ChatAccountRepository;
 import com.google.gson.Gson;
+import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.request.InlineKeyboardButton;
 import com.pengrad.telegrambot.model.request.InlineKeyboardMarkup;
+import com.pengrad.telegrambot.request.DeleteMessage;
+import com.pengrad.telegrambot.request.EditMessageReplyMarkup;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +29,8 @@ import static com.coolguys.bot.dto.QueryDataDto.ROLE_SELECT_TYPE;
 public class KeyboardService {
     private final ChatAccountRepository chatAccountRepository;
     private final ChatAccountMapper chatAccountMapper;
+
+    private final TelegramBot bot;
 
     public InlineKeyboardMarkup getRoleActionsKeyboard(ChatAccount acc, RoleType role) {
         InlineKeyboardButton[] keys = new InlineKeyboardButton[role.getRoleActions().size()];
@@ -48,6 +53,13 @@ public class KeyboardService {
         return new InlineKeyboardMarkup(keys);
     }
 
+    public void deleteOrUpdateKeyboardMessage(Long chatId, int messageId) {
+        if (!bot.execute(new DeleteMessage(chatId, messageId)).isOk()) {
+            EditMessageReplyMarkup editMessageReplyMarkup = new EditMessageReplyMarkup(chatId, messageId)
+                    .replyMarkup(new InlineKeyboardMarkup());
+            bot.execute(editMessageReplyMarkup);
+        }
+    }
     public InlineKeyboardMarkup getRolesKeyboard(ChatAccount acc) {
         int verticalRowCount = Double.valueOf(Math.ceil(Integer.valueOf(RoleType.values().length).doubleValue() / 2)).intValue();
         InlineKeyboardButton[][] keys = new InlineKeyboardButton[verticalRowCount][2];

@@ -156,32 +156,32 @@ public class MessagesListener implements UpdatesListener {
                         log.info("Reply order query");
                         executeAction(query.message().chat().id(),
                                 () -> orderService.checkOrders(query.message().chat().id(), originAcc,
-                                        dto.getOption(), -1, OrderService.Income.DATA));
+                                        dto.getOption(), query.message().messageId(), OrderService.Income.DATA));
                         break;
                     case STEAL_TYPE:
                         log.info("Steal query");
                         executeAction(originAcc.getChat().getId(),
-                                () -> stealService.processSteal(originAcc, dto));
+                                () -> stealService.processSteal(originAcc, dto, query.message().messageId()));
                         break;
                     case DROP_DRUGS_TYPE:
                         log.info("Drop drugs query");
                         executeAction(originAcc.getChat().getId(),
-                                () -> drugsService.processDropDrug(originAcc, dto));
+                                () -> drugsService.processDropDrug(originAcc, dto, query.message().messageId()));
                         break;
                     case ROLE_SELECT_TYPE:
                         log.info("Role select query");
                         executeAction(originAcc.getChat().getId(),
-                                () -> roleService.processRoleSelection(originAcc, dto));
+                                () -> roleService.processRoleSelection(originAcc, dto, query.message().messageId()));
                         break;
                     case ROLE_ACTION_TYPE:
                         log.info("Role Action selected");
                         executeAction(originAcc.getChat().getId(),
-                                () -> roleProcessor.processAction(originAcc, dto));
+                                () -> roleProcessor.processAction(originAcc, dto, query.message().messageId()));
                         break;
                     case THIEF_INVESTIGATE_TYPE:
                         log.info("Thief investigate type");
                         executeAction(originAcc.getChat().getId(),
-                                () -> thiefInvestigateService.processInvestigate(originAcc, dto));
+                                () -> thiefInvestigateService.processInvestigate(originAcc, dto, query.message().messageId()));
                 }
             }
         });

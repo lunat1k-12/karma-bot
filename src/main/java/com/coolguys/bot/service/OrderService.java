@@ -70,7 +70,7 @@ public class OrderService {
     private void processReplyOrder(TelegramOrder order, ChatAccount sender, String messageText, Integer messageId, Income source) {
         switch(order.getStage()) {
             case TARGET_REQUIRED:
-                processReplyTarget(order, messageText, sender, source);
+                processReplyTarget(order, messageText, sender, source, messageId);
                 break;
             case MESSAGE_REQUIRED:
                 processReplyMessage(order, messageText, sender, messageId, source);
@@ -109,7 +109,7 @@ public class OrderService {
         bot.execute(new DeleteMessage(order.getChatId(), messageId));
     }
 
-    private void processReplyTarget(TelegramOrder order, String messageText, ChatAccount originAcc, Income source) {
+    private void processReplyTarget(TelegramOrder order, String messageText, ChatAccount originAcc, Income source, Integer messageId) {
 
         if (!order.getOriginAccId().equals(originAcc.getId())) {
             return;
@@ -131,6 +131,7 @@ public class OrderService {
                 originAcc.plusCredit(DEFAULT_PRICE);
                 chatAccountRepository.save(chatAccountMapper.toEntity(originAcc));
                 bot.execute(new SendMessage(order.getChatId(), "Замовлення скасовано"));
+                keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(),  messageId);
                 return;
             }
             targetAcc = chatAccountRepository.findById(targetId)
@@ -140,6 +141,7 @@ public class OrderService {
                 bot.execute(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
                         .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(order.getChatId(), originAcc.getId(),
                                 QueryDataDto.REPLY_ORDER_TYPE)));
+                keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(),  messageId);
                 return;
             }
         } catch (NumberFormatException ex) {
@@ -147,6 +149,7 @@ public class OrderService {
             bot.execute(new SendMessage(order.getChatId(), "Я все ще чекаю на твій вибір!")
                     .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(order.getChatId(), originAcc.getId(),
                             QueryDataDto.REPLY_ORDER_TYPE)));
+            keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(),  messageId);
             return;
         }
 
@@ -154,6 +157,7 @@ public class OrderService {
         order.setStage(MESSAGE_REQUIRED);
         telegramOrderRepository.save(telegramOrderMapper.toEntity(order));
         bot.execute(new SendMessage(order.getChatId(), "Ок, тепер напиши який текст ти хочеш встановити на автовідповідь"));
+        keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(),  messageId);
     }
 
     private Stream<TelegramOrder> getActiveTelegramOrders(Long chatId) {

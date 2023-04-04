@@ -100,7 +100,7 @@ public class StealService {
         log.info("Steal request created");
     }
 
-    public void processSteal(ChatAccount originAcc, QueryDataDto query) {
+    public void processSteal(ChatAccount originAcc, QueryDataDto query, Integer messageId) {
         TelegramOrder order = telegramOrderRepository.findAllByChatIdAndStageAndOriginAccIdAndType(originAcc.getChat().getId(),
                         ReplyOrderStage.TARGET_REQUIRED.getId(),
                         originAcc.getId(),
@@ -119,6 +119,7 @@ public class StealService {
             if ("0".equals(query.getOption())) {
                 telegramOrderRepository.deleteById(order.getId());
                 bot.execute(new SendMessage(originAcc.getChat().getId(), "Крадій одумався"));
+                keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(), messageId);
                 return;
             }
             ChatAccount targetAcc = chatAccountRepository.findById(Long.parseLong(query.getOption()))
@@ -129,9 +130,11 @@ public class StealService {
                 bot.execute(new SendMessage(originAcc.getChat().getId(), String.format("Що ти хотів вкрасти у @%s? він бесхатько!",
                         targetAcc.getUser().getUsername())));
                 telegramOrderRepository.deleteById(order.getId());
+                keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(), messageId);
                 return;
             }
 
+            keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(), messageId);
             bot.execute(new SendMessage(originAcc.getChat().getId(),
                     String.format("Невідомий намагається вкрасти у @%s", targetAcc.getUser().getUsername())));
             bot.execute(new SendChatAction(originAcc.getChat().getId(), ChatAction.typing));
