@@ -41,9 +41,10 @@ public class ThiefInvestigateService {
                 .replyMarkup(keyboardService.getTargetAccSelectionPersonKeyboard(acc.getChat().getId(), acc.getId(), THIEF_INVESTIGATE_TYPE)));
     }
 
-    public void processInvestigate(ChatAccount acc, QueryDataDto dto) {
+    public void processInvestigate(ChatAccount acc, QueryDataDto dto, Integer messageId) {
         if (acc.getId().equals(dto.getOriginalAccId())) {
             log.info("Process Thief Investigate");
+            keyboardService.deleteOrUpdateKeyboardMessage(acc.getChat().getId(), messageId);
 
             if (CANCEL_OPTION.equals(dto.getOption())) {
                 bot.execute(new SendMessage(acc.getChat().getId(), "Крадій змінив свої плани"));

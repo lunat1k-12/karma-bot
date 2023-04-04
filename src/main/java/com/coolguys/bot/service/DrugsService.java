@@ -88,7 +88,7 @@ public class DrugsService {
     }
 
     @Transactional
-    public void processDropDrug(ChatAccount originAcc, QueryDataDto query) {
+    public void processDropDrug(ChatAccount originAcc, QueryDataDto query, Integer messageId) {
         TelegramOrder order = telegramOrderRepository.findAllByChatIdAndStageAndOriginAccIdAndType(originAcc.getChat().getId(),
                         ReplyOrderStage.TARGET_REQUIRED.getId(),
                         originAcc.getId(),
@@ -102,6 +102,7 @@ public class DrugsService {
         }
 
         order.setStage(ReplyOrderStage.DONE);
+        keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(), messageId);
 
         if ("0".equals(query.getOption())) {
             telegramOrderRepository.deleteById(order.getId());
