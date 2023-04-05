@@ -15,6 +15,7 @@ import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.ThiefInvestigateService;
 import com.coolguys.bot.service.UserService;
 import com.coolguys.bot.service.command.CommandProcessor;
+import com.coolguys.bot.service.external.ChatGPTService;
 import com.coolguys.bot.service.external.YesNoService;
 import com.coolguys.bot.service.role.RoleProcessor;
 import com.coolguys.bot.service.role.RoleService;
@@ -66,6 +67,7 @@ public class MessagesListener implements UpdatesListener {
     private final CommandProcessor commandProcessor;
     private final ThiefInvestigateService thiefInvestigateService;
     private final YesNoService yesNoService;
+    private final ChatGPTService chatGPTService;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -83,7 +85,8 @@ public class MessagesListener implements UpdatesListener {
                             TelegramChatRepository telegramChatRepository,
                             PrivateChatService privateChatService, RoleService roleService,
                             RoleProcessor roleProcessor, CommandProcessor commandProcessor,
-                            YesNoService yesNoService) {
+                            YesNoService yesNoService,
+                            ChatGPTService chatGPTService) {
         this.orderService = orderService;
         this.diceService = diceService;
         this.karmaService = karmaService;
@@ -99,6 +102,7 @@ public class MessagesListener implements UpdatesListener {
         this.bot = bot;
         this.roleService = roleService;
         this.roleProcessor = roleProcessor;
+        this.chatGPTService = chatGPTService;
         log.info("Bot Token: {}", botConfig.getToken());
         bot.setUpdatesListener(this);
     }
@@ -224,6 +228,8 @@ public class MessagesListener implements UpdatesListener {
             log.info("Process text");
             executeAction(originAccount.getChat().getId(),
                     () -> yesNoService.answerIfNeeded(message, originAccount.getChat().getId()));
+            executeAction(originAccount.getChat().getId(),
+                    () -> chatGPTService.getAnswer(message, originAccount.getChat().getId()));
             executeAction(originAccount.getChat().getId(),
                     () -> {
                         messagesService.saveMessage(originAccount, message);
