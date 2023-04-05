@@ -27,4 +27,5 @@ public class BotConfig {
     private String roleActionsCommand;
     private String infoCommand;
     private String languageDetectorApiKey;
+    private String rapidApiKey;
 }

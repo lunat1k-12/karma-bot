@@ -21,16 +21,20 @@ public class YesNoService {
     }
 
     public void answerIfNeeded(Message msg, Long chatId) {
-        if (msg.text().endsWith("?")) {
-            var resp = rest.getForObject("https://yesno.wtf/api", YesNoResponse.class);
-            if (resp != null) {
-                log.info("Response: {}, URL: {}", resp.getAnswer(), resp.getImage());
-                var result = bot.execute(new SendAnimation(chatId, resp.getImage()).replyToMessageId(msg.messageId()));
-                log.info("Result: {}", result);
-            } else {
-                log.info("Error fetching answer");
-                bot.execute(new SendMessage(chatId, "Не зміг знайти відповідь"));
-            }
+        if (msg.text().endsWith("?)")) {
+            answer(msg, chatId);
+        }
+    }
+
+    public void answer(Message msg, Long chatId) {
+        var resp = rest.getForObject("https://yesno.wtf/api", YesNoResponse.class);
+        if (resp != null) {
+            log.info("Response: {}, URL: {}", resp.getAnswer(), resp.getImage());
+            var result = bot.execute(new SendAnimation(chatId, resp.getImage()).replyToMessageId(msg.messageId()));
+            log.info("Result: {}", result);
+        } else {
+            log.info("Error fetching answer");
+            bot.execute(new SendMessage(chatId, "Не зміг знайти відповідь"));
         }
     }
 }
