@@ -8,6 +8,7 @@ import com.coolguys.bot.mapper.TelegramMessageMapper;
 import com.coolguys.bot.repository.ChatAccountRepository;
 import com.coolguys.bot.repository.TelegramChatRepository;
 import com.coolguys.bot.repository.TelegramMessageRepository;
+import com.coolguys.bot.service.UserService;
 import com.coolguys.bot.service.external.Language;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.request.SendMessage;
@@ -31,6 +32,7 @@ public class ScheduledStateLang {
     private final TelegramMessageMapper telegramMessageMapper;
     private final ChatAccountRepository chatAccountRepository;
     private final ChatAccountMapper chatAccountMapper;
+    private final UserService userService;
     private final TelegramBot bot;
 
     @Scheduled(cron = "00 00 20 * * *")
@@ -42,9 +44,7 @@ public class ScheduledStateLang {
     }
 
     private void checkLanguage(TelegramChat chat) {
-        var chatAccounts = chatAccountRepository.findByChatId(chat.getId()).stream()
-                .map(chatAccountMapper::toDto)
-                .collect(Collectors.toList());
+        var chatAccounts = userService.findActiveAccByChatId(chat.getId());
 
         if (chatAccounts.isEmpty()) {
             log.info("no users in chat {}", chat.getName());
