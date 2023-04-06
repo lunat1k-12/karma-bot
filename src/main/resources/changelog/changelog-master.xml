@@ -68,4 +68,5 @@
     <include file="/changelog/changes/v3-updates/alter-telegram-message-table.xml"/>
     <!--Other-->
     <include file="/changelog/changes/v3-updates/create-block-action-table.xml"/>
+    <include file="/changelog/changes/v3-updates/insert-doctor-update-note.xml"/>
 </databaseChangeLog>
