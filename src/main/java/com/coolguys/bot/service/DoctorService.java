@@ -108,7 +108,7 @@ public class DoctorService {
     }
 
     public void checkMessageSickReply(ChatAccount originUser, Message message) {
-        if (message.replyToMessage() == null) {
+        if (message.replyToMessage() == null || message.replyToMessage().from().isBot()) {
             return;
         }
 
