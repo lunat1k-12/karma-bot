@@ -26,13 +26,6 @@ public enum Zodiac {
         return buttonName;
     }
 
-    public static Zodiac getByButtonName(String buttonName) {
-        return Arrays.stream(values())
-                .filter(z -> z.buttonName.equals(buttonName))
-                .findFirst()
-                .orElse(null);
-    }
-
     public static Zodiac getByName(String name) {
         return Arrays.stream(values())
                 .filter(z -> z.name.equals(name))
