@@ -6,6 +6,7 @@ import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.entity.TelegramChatEntity;
 import com.coolguys.bot.repository.TelegramChatRepository;
 import com.coolguys.bot.service.DiceService;
+import com.coolguys.bot.service.DoctorService;
 import com.coolguys.bot.service.DrugsService;
 import com.coolguys.bot.service.KarmaService;
 import com.coolguys.bot.service.MessagesService;
@@ -43,6 +44,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static com.coolguys.bot.dto.QueryDataDto.DOCTOR_DISEASE_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.DROP_DRUGS_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.REPLY_ORDER_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.ROLE_ACTION_TYPE;
@@ -68,6 +70,7 @@ public class MessagesListener implements UpdatesListener {
     private final ThiefInvestigateService thiefInvestigateService;
     private final YesNoService yesNoService;
     private final ChatGPTService chatGPTService;
+    private final DoctorService doctorService;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -86,7 +89,8 @@ public class MessagesListener implements UpdatesListener {
                             PrivateChatService privateChatService, RoleService roleService,
                             RoleProcessor roleProcessor, CommandProcessor commandProcessor,
                             YesNoService yesNoService,
-                            ChatGPTService chatGPTService) {
+                            ChatGPTService chatGPTService,
+                            DoctorService doctorService) {
         this.orderService = orderService;
         this.diceService = diceService;
         this.karmaService = karmaService;
@@ -103,6 +107,7 @@ public class MessagesListener implements UpdatesListener {
         this.roleService = roleService;
         this.roleProcessor = roleProcessor;
         this.chatGPTService = chatGPTService;
+        this.doctorService = doctorService;
         log.info("Bot Token: {}", botConfig.getToken());
         bot.setUpdatesListener(this);
     }
@@ -186,6 +191,11 @@ public class MessagesListener implements UpdatesListener {
                         log.info("Thief investigate type");
                         executeAction(originAcc.getChat().getId(),
                                 () -> thiefInvestigateService.processInvestigate(originAcc, dto, query.message().messageId()));
+                        break;
+                    case DOCTOR_DISEASE_TYPE:
+                        log.info("Doctor disease type");
+                        executeAction(originAcc.getChat().getId(),
+                                () -> doctorService.processDocSelection(originAcc, dto, query.message().messageId()));
                 }
             }
         });

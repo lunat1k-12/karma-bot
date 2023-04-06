@@ -16,6 +16,10 @@ public interface RoleRepository extends CrudRepository<RoleEntity, Long> {
     @Query("select r from role r where r.account.id = :accId")
     Optional<RoleEntity> findByAccountId(@Param("accId") Long accId);
 
+    @Query("select r from role r where r.account.id = :accId and r.expires > :date")
+    Optional<RoleEntity> findByAccountId(@Param("accId") Long accId,
+                                         @Param("date") LocalDateTime date);
+
     @Query("select r from role r where r.account.chat.id = :chatId and r.role = :type and r.expires > :date")
     List<RoleEntity> findByChatAndRoleType(@Param("chatId") Long chatId,
                                            @Param("type") String type,

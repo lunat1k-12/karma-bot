@@ -1,11 +1,14 @@
 package com.coolguys.bot.service.command;
 
 import com.coolguys.bot.conf.BotConfig;
+import com.coolguys.bot.dto.BlockActionDto;
 import com.coolguys.bot.dto.ChatAccount;
 import com.coolguys.bot.dto.TelegramCasino;
 import com.coolguys.bot.dto.TelegramGuardDepartment;
 import com.coolguys.bot.dto.TelegramPoliceDepartment;
+import com.coolguys.bot.entity.BlockActionEntity;
 import com.coolguys.bot.mapper.ChatAccountMapper;
+import com.coolguys.bot.repository.BlockActionRepository;
 import com.coolguys.bot.repository.ChatAccountRepository;
 import com.coolguys.bot.service.CasinoService;
 import com.coolguys.bot.service.DrugsService;
@@ -21,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,6 +45,7 @@ public class CreditsCommand implements Command {
     private final RoleService roleService;
     private final DrugsService drugsService;
     private final GuardService guardService;
+    private final BlockActionRepository blockActionRepository;
 
     @Override
     public void processCommand(Message message, ChatAccount originAccount) {
@@ -90,11 +95,17 @@ public class CreditsCommand implements Command {
         StringBuilder sb = new StringBuilder(String.format("%s : %s ", acc.getUser().getUsername(), acc.getSocialCredit()));
         roleService.getAccRole(acc)
                 .ifPresent(r -> sb.append(r.getRole().getEmoji()));
+
+        List<BlockActionEntity> sicks =
+                blockActionRepository.findAllAccIdAndTypeAndDate(acc.getId(), BlockActionDto.BlockType.SICK.getValue(), LocalDateTime.now());
         if (guardService.doesHaveGuard(acc)) {
             sb.append("⚔️");
         }
         if (stealService.isInJail(acc)) {
             sb.append("⛓");
+        }
+        if (!sicks.isEmpty()) {
+            sb.append("\uD83E\uDD15");
         }
         if (casino.getOwner() != null && casino.getOwner().getId().equals(acc.getUser().getId())) {
             sb.append("\uD83C\uDFB0");

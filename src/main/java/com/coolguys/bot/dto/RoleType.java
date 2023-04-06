@@ -5,6 +5,7 @@ import lombok.Data;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.coolguys.bot.service.role.RoleActionType.DOCTOR_MAKE_SICK;
 import static com.coolguys.bot.service.role.RoleActionType.DO_DRUGS_ACTION;
 import static com.coolguys.bot.service.role.RoleActionType.DROP_DRUGS_ACTION;
 import static com.coolguys.bot.service.role.RoleActionType.PRISON_WATCH_TAKE_MONEY_ACTION;
@@ -20,7 +21,9 @@ public enum RoleType {
             RoleAction.of(DO_DRUGS_ACTION, "Торгувати наркотою"),
             RoleAction.of(DROP_DRUGS_ACTION, "Підкинути наркотики"))),
     PRISON_WATCH("prison_watch", "Вертухай", "\uD83D\uDC6E\u200D♀️",
-            List.of(RoleAction.of(PRISON_WATCH_TAKE_MONEY_ACTION, "Вимагати грощі у в`язнів")));
+            List.of(RoleAction.of(PRISON_WATCH_TAKE_MONEY_ACTION, "Вимагати грощі у в`язнів"))),
+    DOCTOR("doc", "Лікар", "\uD83D\uDC68\u200D⚕️",
+            List.of(RoleAction.of(DOCTOR_MAKE_SICK, "Заразити хворобою")));
     private final String id;
     private final String label;
     private final String emoji;

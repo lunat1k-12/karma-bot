@@ -6,7 +6,6 @@ import com.coolguys.bot.mapper.TelegramUserMapper;
 import com.coolguys.bot.repository.TelegramMessageRepository;
 import com.coolguys.bot.service.external.Language;
 import com.coolguys.bot.service.external.LanguageDetectorService;
-import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.Message;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,8 +18,10 @@ public class MessagesService {
     private final TelegramMessageRepository telegramMessageRepository;
     private final TelegramUserMapper telegramUserMapper;
     private final LanguageDetectorService languageDetectorService;
+    private final DoctorService doctorService;
 
     public void saveMessage(ChatAccount originUser, Message message) {
+        doctorService.checkMessageSickReply(originUser, message);
         Language lang = languageDetectorService.checkMessageLanguage(message.text());
 
         telegramMessageRepository.save(TelegramMessageEntity.builder()
