@@ -29,6 +29,9 @@ public class TelegramUserEntity {
     @Column(name = "last_name")
     private String lastName;
 
+    @Column(name = "zodiac")
+    private String zodiac;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
