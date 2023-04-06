@@ -28,4 +28,5 @@ public class BotConfig {
     private String infoCommand;
     private String languageDetectorApiKey;
     private String rapidApiKey;
+    private String setZodiacCommand;
 }

@@ -69,4 +69,5 @@
     <!--Other-->
     <include file="/changelog/changes/v3-updates/create-block-action-table.xml"/>
     <include file="/changelog/changes/v3-updates/insert-doctor-update-note.xml"/>
+    <include file="/changelog/changes/v3-updates/alter-user-table.xml"/>
 </databaseChangeLog>

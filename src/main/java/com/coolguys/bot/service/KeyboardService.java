@@ -4,6 +4,7 @@ import com.coolguys.bot.dto.ChatAccount;
 import com.coolguys.bot.dto.QueryDataDto;
 import com.coolguys.bot.dto.RoleType;
 import com.coolguys.bot.dto.TelegramUser;
+import com.coolguys.bot.dto.Zodiac;
 import com.coolguys.bot.mapper.ChatAccountMapper;
 import com.coolguys.bot.repository.ChatAccountRepository;
 import com.google.gson.Gson;
@@ -82,6 +83,33 @@ public class KeyboardService {
         }
 
         if (RoleType.values().length % 2 != 0) {
+            keys[verticalRowCount - 1] = new InlineKeyboardButton[]{keys[verticalRowCount - 1][0]};
+        }
+        return new InlineKeyboardMarkup(keys);
+    }
+
+    public InlineKeyboardMarkup getZodiacKeyboard(ChatAccount acc, String type) {
+        int verticalRowCount = Double.valueOf(Math.ceil(Integer.valueOf(Zodiac.values().length).doubleValue() / 2)).intValue();
+        InlineKeyboardButton[][] keys = new InlineKeyboardButton[verticalRowCount][2];
+
+        Gson gson = new Gson();
+        int zodiacIndex = 0;
+        for (int i = 0; i < keys.length; i++) {
+            for (int j=0; j < keys[i].length; j++) {
+                if (Zodiac.values().length > zodiacIndex) {
+                    Zodiac zodiac = Zodiac.values()[zodiacIndex];
+                    QueryDataDto query = QueryDataDto.builder()
+                            .type(type)
+                            .option(zodiac.getName())
+                            .originalAccId(acc.getId())
+                            .build();
+                    keys[i][j] = new InlineKeyboardButton(zodiac.getButtonName()).callbackData(gson.toJson(query));
+                    zodiacIndex++;
+                }
+            }
+        }
+
+        if (Zodiac.values().length % 2 != 0) {
             keys[verticalRowCount - 1] = new InlineKeyboardButton[]{keys[verticalRowCount - 1][0]};
         }
         return new InlineKeyboardMarkup(keys);

@@ -18,6 +18,7 @@ import com.coolguys.bot.service.UserService;
 import com.coolguys.bot.service.command.CommandProcessor;
 import com.coolguys.bot.service.external.ChatGPTService;
 import com.coolguys.bot.service.external.YesNoService;
+import com.coolguys.bot.service.external.ZodiacService;
 import com.coolguys.bot.service.role.RoleProcessor;
 import com.coolguys.bot.service.role.RoleService;
 import com.google.gson.Gson;
@@ -51,6 +52,7 @@ import static com.coolguys.bot.dto.QueryDataDto.ROLE_ACTION_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.ROLE_SELECT_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.STEAL_TYPE;
 import static com.coolguys.bot.dto.QueryDataDto.THIEF_INVESTIGATE_TYPE;
+import static com.coolguys.bot.dto.QueryDataDto.ZODIAC_TYPE;
 
 @Slf4j
 @Component
@@ -71,6 +73,7 @@ public class MessagesListener implements UpdatesListener {
     private final YesNoService yesNoService;
     private final ChatGPTService chatGPTService;
     private final DoctorService doctorService;
+    private final ZodiacService zodiacService;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -90,7 +93,7 @@ public class MessagesListener implements UpdatesListener {
                             RoleProcessor roleProcessor, CommandProcessor commandProcessor,
                             YesNoService yesNoService,
                             ChatGPTService chatGPTService,
-                            DoctorService doctorService) {
+                            DoctorService doctorService, ZodiacService zodiacService) {
         this.orderService = orderService;
         this.diceService = diceService;
         this.karmaService = karmaService;
@@ -108,6 +111,7 @@ public class MessagesListener implements UpdatesListener {
         this.roleProcessor = roleProcessor;
         this.chatGPTService = chatGPTService;
         this.doctorService = doctorService;
+        this.zodiacService = zodiacService;
         log.info("Bot Token: {}", botConfig.getToken());
         bot.setUpdatesListener(this);
     }
@@ -196,6 +200,11 @@ public class MessagesListener implements UpdatesListener {
                         log.info("Doctor disease type");
                         executeAction(originAcc.getChat().getId(),
                                 () -> doctorService.processDocSelection(originAcc, dto, query.message().messageId()));
+                        break;
+                    case ZODIAC_TYPE:
+                        log.info("Select zodiac type");
+                        executeAction(originAcc.getChat().getId(),
+                                () -> zodiacService.processZodiacSelection(originAcc, dto, query.message().messageId()));
                 }
             }
         });

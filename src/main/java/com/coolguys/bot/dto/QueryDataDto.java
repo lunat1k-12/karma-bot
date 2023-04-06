@@ -18,6 +18,8 @@ public class QueryDataDto {
 
     public static final String DOCTOR_DISEASE_TYPE = "doc";
 
+    public static final String ZODIAC_TYPE = "zo";
+
     private String type;
     private String option;
     private Long originalAccId;
