@@ -7,4 +7,6 @@ public class RoleActionType {
 
     public static String THIEF_INVESTIGATE_ACTION = "t.i";
     public static String PRISON_WATCH_TAKE_MONEY_ACTION = "p.w.t.m";
+
+    public static String DOCTOR_MAKE_SICK = "d.m.c";
 }

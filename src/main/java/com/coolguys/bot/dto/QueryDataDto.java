@@ -16,6 +16,8 @@ public class QueryDataDto {
 
     public static final String THIEF_INVESTIGATE_TYPE = "th.in";
 
+    public static final String DOCTOR_DISEASE_TYPE = "doc";
+
     private String type;
     private String option;
     private Long originalAccId;

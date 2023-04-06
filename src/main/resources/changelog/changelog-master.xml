@@ -66,4 +66,6 @@
     <include file="/changelog/changes/v3-updates/insert-poll-note.xml"/>
     <!--language detector-->
     <include file="/changelog/changes/v3-updates/alter-telegram-message-table.xml"/>
+    <!--Other-->
+    <include file="/changelog/changes/v3-updates/create-block-action-table.xml"/>
 </databaseChangeLog>
