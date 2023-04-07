@@ -84,6 +84,7 @@ public class ScheduledZodiac {
                 if (horoscope != null) {
                     bot.execute(new SendMessage(chat.getId(), horoscope));
                 }
+                Thread.sleep(2000);
             } catch(Exception ex) {
                 log.error("Exception while trying to get horoscope for {}", zodiac.getName());
             }
