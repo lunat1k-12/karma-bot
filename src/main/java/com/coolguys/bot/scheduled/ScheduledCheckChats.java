@@ -21,7 +21,7 @@ public class ScheduledCheckChats {
     private final TelegramChatMapper telegramChatMapper;
     private final TelegramBot bot;
 
-    @Scheduled(cron = "00 00 09 * * *")
+    @Scheduled(cron = "00 00 09 * * *", zone = "Europe/Kiev")
     @Async
     public void checkChats() {
         telegramChatRepository.findAllActive().stream()

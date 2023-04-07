@@ -59,7 +59,7 @@ public class ScheduledTasksService {
     private static final String POLICE_CHECK_STICKER = "CAACAgIAAxkBAAIDRWMcw5JmJ-5YvBKHMffkfT67LnelAAJ-AwACbbBCA3EZlrX3Vpb0KQQ";
     private static final Integer DRUGS_FINE = 100;
 
-    @Scheduled(cron = "00 00 10,13,16 * * *")
+    @Scheduled(cron = "00 00 13,16,19 * * *", zone = "Europe/Kiev")
     @Async
     public void drugRaid() {
         log.info("Initiate drug raid");
@@ -152,7 +152,7 @@ public class ScheduledTasksService {
         }
     }
 
-    @Scheduled(cron = "00 15 09 * * *")
+    @Scheduled(cron = "00 15 10 * * *", zone = "Europe/Kiev")
     @Async
     public void getTopAndWorstUser() {
         try {
@@ -198,7 +198,7 @@ public class ScheduledTasksService {
         log.info("getTopAndWorstUser - done for chat: {}", chatId);
     }
 
-    @Scheduled(cron = "00 00 08 * * MON")
+    @Scheduled(cron = "00 10 10 * * MON", zone = "Europe/Kiev")
     @Async
     public void processMostActiveUser() {
         try {
