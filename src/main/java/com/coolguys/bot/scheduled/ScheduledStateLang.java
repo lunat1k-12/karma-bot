@@ -35,7 +35,7 @@ public class ScheduledStateLang {
     private final UserService userService;
     private final TelegramBot bot;
 
-    @Scheduled(cron = "00 00 20 * * *")
+    @Scheduled(cron = "00 00 23 * * *", zone = "Europe/Kiev")
     @Async
     public void checkLanguage() {
         telegramChatRepository.findAllActive().stream()

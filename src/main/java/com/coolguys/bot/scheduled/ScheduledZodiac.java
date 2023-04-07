@@ -49,7 +49,7 @@ public class ScheduledZodiac {
             .setReadTimeout(Duration.of(1, ChronoUnit.MINUTES))
             .build();
 
-    @Scheduled(cron = "00 20 09 * * *")
+    @Scheduled(cron = "00 20 09 * * *", zone = "Europe/Kiev")
     @Async
     public void checkZodiac() {
         telegramChatRepository.findAllActive().stream()

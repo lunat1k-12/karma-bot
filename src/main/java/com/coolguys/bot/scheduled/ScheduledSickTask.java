@@ -40,7 +40,7 @@ public class ScheduledSickTask {
     private final ChatAccountMapper chatAccountMapper;
     private final TelegramBot bot;
 
-    @Scheduled(cron = "00 15 * * * *")
+    @Scheduled(cron = "00 17 * * * *", zone = "Europe/Kiev")
     @Async
     public void checkDisease() {
         telegramChatRepository.findAllActive().stream()
