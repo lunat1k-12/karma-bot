@@ -109,6 +109,9 @@ public class StealService {
                 .map(telegramOrderMapper::toDto)
                 .orElse(null);
 
+        originAcc = chatAccountRepository.findById(originAcc.getId())
+                .map(chatAccountMapper::toDto)
+                .orElse(originAcc);
         if (order == null) {
             return;
         }

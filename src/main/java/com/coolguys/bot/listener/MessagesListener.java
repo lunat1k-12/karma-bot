@@ -168,8 +168,7 @@ public class MessagesListener implements UpdatesListener {
                     case REPLY_ORDER_TYPE:
                         log.info("Reply order query");
                         executeAction(query.message().chat().id(),
-                                () -> orderService.checkOrders(query.message().chat().id(), originAcc,
-                                        dto.getOption(), query.message().messageId(), OrderService.Income.DATA));
+                                () -> orderService.checkOrders(query.message(), dto.getOption(), originAcc, OrderService.Income.DATA));
                         break;
                     case STEAL_TYPE:
                         log.info("Steal query");
@@ -252,9 +251,12 @@ public class MessagesListener implements UpdatesListener {
             executeAction(originAccount.getChat().getId(),
                     () -> {
                         messagesService.saveMessage(originAccount, message);
-                        orderService.checkOrders(message.chat().id(), originAccount, message.text().trim(),
-                                message.messageId(), OrderService.Income.TEXT);
+                        orderService.checkOrders(message, message.text().trim(), originAccount, OrderService.Income.TEXT);
                     });
+        } else if (message.sticker() != null) {
+            log.info("Process sticker");
+            executeAction(originAccount.getChat().getId(),
+                    () -> orderService.checkOrders(message, null, originAccount, OrderService.Income.TEXT));
         }
 
     }
