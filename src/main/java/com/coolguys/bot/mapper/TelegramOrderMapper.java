@@ -27,6 +27,7 @@ public class TelegramOrderMapper implements EntityToDtoMapper<TelegramOrderEntit
                 .stage(ReplyOrderStage.getById(entity.getStage()))
                 .type(OrderType.getById(entity.getType()))
                 .drugAction(telegramDrugActionMapper.toDto(entity.getDrugAction()))
+                .stickerId(entity.getStickerId())
                 .build();
     }
 
@@ -43,6 +44,7 @@ public class TelegramOrderMapper implements EntityToDtoMapper<TelegramOrderEntit
                 .chatId(dto.getChatId())
                 .id(dto.getId())
                 .drugAction(telegramDrugActionMapper.toEntity(dto.getDrugAction()))
+                .stickerId(dto.getStickerId())
                 .build();
     }
 }

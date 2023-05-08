@@ -70,4 +70,6 @@
     <include file="/changelog/changes/v3-updates/create-block-action-table.xml"/>
     <include file="/changelog/changes/v3-updates/insert-doctor-update-note.xml"/>
     <include file="/changelog/changes/v3-updates/alter-user-table.xml"/>
+    <include file="/changelog/changes/v3-updates/alter-telegram-order-request-table.xml"/>
+    <include file="/changelog/changes/v3-updates/insert-sticker-update.xml"/>
 </databaseChangeLog>

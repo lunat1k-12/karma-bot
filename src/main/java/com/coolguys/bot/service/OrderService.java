@@ -10,9 +10,12 @@ import com.coolguys.bot.mapper.TelegramOrderMapper;
 import com.coolguys.bot.repository.ChatAccountRepository;
 import com.coolguys.bot.repository.TelegramOrderRepository;
 import com.pengrad.telegrambot.TelegramBot;
+import com.pengrad.telegrambot.model.Message;
+import com.pengrad.telegrambot.model.Sticker;
 import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.DeleteMessage;
 import com.pengrad.telegrambot.request.SendMessage;
+import com.pengrad.telegrambot.request.SendSticker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -61,19 +64,18 @@ public class OrderService {
                         QueryDataDto.REPLY_ORDER_TYPE)));
     }
 
-    public void checkOrders(Long chatId, ChatAccount originUser,
-                            String messageText, Integer messageId, Income source) {
-        getActiveTelegramOrders(chatId)
-                .forEach(order -> processReplyOrder(order, originUser, messageText, messageId, source));
+    public void checkOrders(Message message, String text, ChatAccount originUser, Income source) {
+        getActiveTelegramOrders(message.chat().id())
+                .forEach(order -> processReplyOrder(order, originUser, text, message.messageId(), source, message.sticker()));
     }
 
-    private void processReplyOrder(TelegramOrder order, ChatAccount sender, String messageText, Integer messageId, Income source) {
+    private void processReplyOrder(TelegramOrder order, ChatAccount sender, String messageText, Integer messageId, Income source, Sticker sticker) {
         switch(order.getStage()) {
             case TARGET_REQUIRED:
                 processReplyTarget(order, messageText, sender, source, messageId);
                 break;
             case MESSAGE_REQUIRED:
-                processReplyMessage(order, messageText, sender, messageId, source);
+                processReplyMessage(order, messageText, sender, messageId, source, sticker);
                 break;
             case IN_PROGRESS:
                 processInProgressMessage(order, sender, messageId, source);
@@ -92,18 +94,29 @@ public class OrderService {
         }
 
         telegramOrderRepository.save(telegramOrderMapper.toEntity(order));
-        bot.execute(new SendMessage(order.getChatId(), order.getRespondMessage())
-                .replyToMessageId(messageId));
+        if (order.getStickerId() != null) {
+            bot.execute(new SendSticker(order.getChatId(), order.getStickerId())
+                    .replyToMessageId(messageId));
+        } else {
+            bot.execute(new SendMessage(order.getChatId(), order.getRespondMessage())
+                    .replyToMessageId(messageId));
+        }
     }
 
-    private void processReplyMessage(TelegramOrder order, String messageText, ChatAccount originAcc, Integer messageId, Income source) {
+    private void processReplyMessage(TelegramOrder order, String messageText,
+                                     ChatAccount originAcc, Integer messageId,
+                                     Income source, Sticker sticker) {
         if (!order.getOriginAccId().equals(originAcc.getId()) || Income.DATA.equals(source)) {
             return;
         }
 
-        order.setRespondMessage(messageText);
-        order.setStage(IN_PROGRESS);
+        if (sticker != null) {
+            order.setStickerId(sticker.fileId());
+        } else {
+            order.setRespondMessage(messageText);
+        }
 
+        order.setStage(IN_PROGRESS);
         telegramOrderRepository.save(telegramOrderMapper.toEntity(order));
         bot.execute(new SendMessage(order.getChatId(), "Відповідь встановленно"));
         bot.execute(new DeleteMessage(order.getChatId(), messageId));
@@ -156,7 +169,7 @@ public class OrderService {
         order.setTargetAcc(targetAcc);
         order.setStage(MESSAGE_REQUIRED);
         telegramOrderRepository.save(telegramOrderMapper.toEntity(order));
-        bot.execute(new SendMessage(order.getChatId(), "Ок, тепер напиши який текст ти хочеш встановити на автовідповідь"));
+        bot.execute(new SendMessage(order.getChatId(), "Ок, тепер напиши який текст або стікер ти хочеш встановити на автовідповідь"));
         keyboardService.deleteOrUpdateKeyboardMessage(originAcc.getChat().getId(),  messageId);
     }
 

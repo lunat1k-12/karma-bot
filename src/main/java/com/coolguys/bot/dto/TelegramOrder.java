@@ -18,4 +18,5 @@ public class TelegramOrder {
     private String respondMessage;
     private ChatAccount targetAcc;
     private TelegramDrugAction drugAction;
+    private String stickerId;
 }

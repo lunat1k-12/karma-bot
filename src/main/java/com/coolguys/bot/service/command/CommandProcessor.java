@@ -1,6 +1,8 @@
 package com.coolguys.bot.service.command;
 
 import com.coolguys.bot.dto.ChatAccount;
+import com.coolguys.bot.mapper.ChatAccountMapper;
+import com.coolguys.bot.repository.ChatAccountRepository;
 import com.pengrad.telegrambot.model.Message;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,13 +16,18 @@ import java.util.List;
 public class CommandProcessor {
 
     private final List<Command> commands;
+    private final ChatAccountRepository chatAccountRepository;
+    private final ChatAccountMapper chatAccountMapper;
 
     public void processCommand(Message message, ChatAccount originAccount) {
+        ChatAccount refreshedAcc = chatAccountRepository.findById(originAccount.getId())
+                .map(chatAccountMapper::toDto)
+                .orElse(originAccount);
         commands.stream()
                 .filter(c -> c.getCommand().equals(message.text()) || concatCommand(c.getCommand()).equals(message.text()))
                 .forEach(c -> {
                     log.info("Process {} command", c.getCommand());
-                    c.processCommand(message, originAccount);
+                    c.processCommand(message, refreshedAcc);
                 });
     }
 

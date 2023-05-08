@@ -53,4 +53,7 @@ public class TelegramOrderEntity {
     @OneToOne
     @JoinColumn(name = "drug_action_id", referencedColumnName = "id")
     private TelegramDrugActionEntity drugAction;
+
+    @Column(name = "sticker_id")
+    private String stickerId;
 }
