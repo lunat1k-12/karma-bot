@@ -244,10 +244,11 @@ public class MessagesListener implements UpdatesListener {
                     () -> diceService.processDice(message, originAccount));
         } else if (message.text() != null) {
             log.info("Process text");
-            executeAction(originAccount.getChat().getId(),
-                    () -> yesNoService.answerIfNeeded(message, originAccount.getChat().getId()));
-            executeAction(originAccount.getChat().getId(),
-                    () -> chatGPTService.getAnswer(message, originAccount.getChat().getId()));
+            // TODO: Make it configurable
+//            executeAction(originAccount.getChat().getId(),
+//                    () -> yesNoService.answerIfNeeded(message, originAccount.getChat().getId()));
+//            executeAction(originAccount.getChat().getId(),
+//                    () -> chatGPTService.getAnswer(message, originAccount.getChat().getId()));
             executeAction(originAccount.getChat().getId(),
                     () -> {
                         messagesService.saveMessage(originAccount, message);
