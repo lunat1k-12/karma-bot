@@ -30,4 +30,5 @@ public class BotConfig {
     private String rapidApiKey;
     private String setZodiacCommand;
     private String awsMetricNamespace;
+    private String awsForwardNamespace;
 }

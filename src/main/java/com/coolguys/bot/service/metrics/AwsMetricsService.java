@@ -38,4 +38,23 @@ public class AwsMetricsService {
 
         cloudWatchClient.putMetricData(request);
     }
+
+    public void sendForwardMetric(String channelTitle) {
+        MetricDatum metric = MetricDatum.builder()
+                .metricName("ForwardCount")
+                .value(1D)
+                .dimensions(Dimension.builder()
+                        .name("ChannelName")
+                        .value(channelTitle)
+                        .build())
+                .unit(StandardUnit.COUNT)
+                .build();
+
+        PutMetricDataRequest request = PutMetricDataRequest.builder()
+                .namespace(botConfig.getAwsForwardNamespace())
+                .metricData(metric)
+                .build();
+
+        cloudWatchClient.putMetricData(request);
+    }
 }

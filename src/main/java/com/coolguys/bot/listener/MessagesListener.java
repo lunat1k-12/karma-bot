@@ -31,6 +31,7 @@ import com.pengrad.telegrambot.model.ChatMemberUpdated;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.User;
+import com.pengrad.telegrambot.model.message.origin.MessageOriginChannel;
 import com.pengrad.telegrambot.model.request.ChatAction;
 import com.pengrad.telegrambot.request.SendChatAction;
 import com.pengrad.telegrambot.request.SendMessage;
@@ -151,6 +152,11 @@ public class MessagesListener implements UpdatesListener {
                 log.info("Process Poll");
             }
             if (update.message() != null) {
+                if (update.message().forwardOrigin() != null && "channel".equals(update.message().forwardOrigin().type())) {
+                    MessageOriginChannel channel = (MessageOriginChannel) update.message().forwardOrigin();
+                    log.info("Forwarded from channel: {}",channel.chat().username());
+                    awsMetricsService.sendForwardMetric(channel.chat().username());
+                }
                 if (update.message().from().isBot()) {
                     log.info("Message from bot will be ignored");
                     return;
