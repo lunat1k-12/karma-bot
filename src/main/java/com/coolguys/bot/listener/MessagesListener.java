@@ -19,6 +19,7 @@ import com.coolguys.bot.service.command.CommandProcessor;
 import com.coolguys.bot.service.external.ChatGPTService;
 import com.coolguys.bot.service.external.YesNoService;
 import com.coolguys.bot.service.external.ZodiacService;
+import com.coolguys.bot.service.metrics.AwsMetricsService;
 import com.coolguys.bot.service.role.RoleProcessor;
 import com.coolguys.bot.service.role.RoleService;
 import com.google.gson.Gson;
@@ -74,6 +75,7 @@ public class MessagesListener implements UpdatesListener {
     private final ChatGPTService chatGPTService;
     private final DoctorService doctorService;
     private final ZodiacService zodiacService;
+    private final AwsMetricsService awsMetricsService;
     private final Map<Long, ExecutorService> chatExecutors = new HashMap<>();
 
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
@@ -93,7 +95,8 @@ public class MessagesListener implements UpdatesListener {
                             RoleProcessor roleProcessor, CommandProcessor commandProcessor,
                             YesNoService yesNoService,
                             ChatGPTService chatGPTService,
-                            DoctorService doctorService, ZodiacService zodiacService) {
+                            DoctorService doctorService, ZodiacService zodiacService,
+                            AwsMetricsService awsMetricsService) {
         this.orderService = orderService;
         this.diceService = diceService;
         this.karmaService = karmaService;
@@ -112,6 +115,7 @@ public class MessagesListener implements UpdatesListener {
         this.chatGPTService = chatGPTService;
         this.doctorService = doctorService;
         this.zodiacService = zodiacService;
+        this.awsMetricsService = awsMetricsService;
         log.info("Bot Token: {}", botConfig.getToken());
         bot.setUpdatesListener(this);
     }
@@ -227,6 +231,7 @@ public class MessagesListener implements UpdatesListener {
     private void processMessage(Message message) {
         log.info("proces message");
         ChatAccount originAccount = userService.loadChatAccount(message);
+        awsMetricsService.sendMessageMetric(originAccount.getUser().getUsername());
         if (message.leftChatMember() != null) {
             log.info("Deactivate user");
             executeAction(message.chat().id(),
