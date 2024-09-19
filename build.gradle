@@ -1,12 +1,17 @@
 plugins {
-    id 'org.springframework.boot' version '2.7.2'
-    id 'io.spring.dependency-management' version '1.0.12.RELEASE'
+    id 'org.springframework.boot' version '3.3.2'
+    id 'io.spring.dependency-management' version '1.1.6'
     id 'java'
 }
 
 group = 'com.coolguys'
 version = '0.0.1-SNAPSHOT'
-sourceCompatibility = '11'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
 
 configurations {
     compileOnly {
@@ -24,11 +29,13 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
     implementation 'org.liquibase:liquibase-core'
     implementation 'org.springframework:spring-web'
-    implementation 'com.github.pengrad:java-telegram-bot-api:6.6.0'
+    implementation 'com.github.pengrad:java-telegram-bot-api:7.9.1'
     implementation 'com.detectlanguage:detectlanguage:1.1.0'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    implementation 'software.amazon.awssdk:cloudwatch:2.20.0'
 }
 
 tasks.named('test') {

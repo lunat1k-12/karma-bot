@@ -29,4 +29,5 @@ public class BotConfig {
     private String languageDetectorApiKey;
     private String rapidApiKey;
     private String setZodiacCommand;
+    private String awsMetricNamespace;
 }
