@@ -1,6 +1,7 @@
 package com.coolguys.bot.service.metrics;
 
 import com.coolguys.bot.conf.BotConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.cloudwatch.CloudWatchClient;
 import software.amazon.awssdk.services.cloudwatch.model.Dimension;
@@ -9,6 +10,7 @@ import software.amazon.awssdk.services.cloudwatch.model.PutMetricDataRequest;
 import software.amazon.awssdk.services.cloudwatch.model.StandardUnit;
 
 @Service
+@Slf4j
 public class AwsMetricsService {
 
     private final CloudWatchClient cloudWatchClient;
@@ -21,40 +23,49 @@ public class AwsMetricsService {
     }
 
     public void sendMessageMetric(String author) {
-        MetricDatum metric = MetricDatum.builder()
-                .metricName("MessageCount")
-                .value(1D)
-                .dimensions(Dimension.builder()
-                        .name("Author")
-                        .value(author)
-                        .build())
-                .unit(StandardUnit.COUNT)
-                .build();
 
-        PutMetricDataRequest request = PutMetricDataRequest.builder()
-                .namespace(botConfig.getAwsMetricNamespace())
-                .metricData(metric)
-                .build();
+        try {
+            MetricDatum metric = MetricDatum.builder()
+                    .metricName("MessageCount")
+                    .value(1D)
+                    .dimensions(Dimension.builder()
+                            .name("Author")
+                            .value(author)
+                            .build())
+                    .unit(StandardUnit.COUNT)
+                    .build();
 
-        cloudWatchClient.putMetricData(request);
+            PutMetricDataRequest request = PutMetricDataRequest.builder()
+                    .namespace(botConfig.getAwsMetricNamespace())
+                    .metricData(metric)
+                    .build();
+
+            cloudWatchClient.putMetricData(request);
+        } catch (Exception ex) {
+            log.info("Failed to send message metric", ex);
+        }
     }
 
     public void sendForwardMetric(String channelTitle) {
-        MetricDatum metric = MetricDatum.builder()
-                .metricName("ForwardCount")
-                .value(1D)
-                .dimensions(Dimension.builder()
-                        .name("ChannelName")
-                        .value(channelTitle)
-                        .build())
-                .unit(StandardUnit.COUNT)
-                .build();
+        try {
+            MetricDatum metric = MetricDatum.builder()
+                    .metricName("ForwardCount")
+                    .value(1D)
+                    .dimensions(Dimension.builder()
+                            .name("ChannelName")
+                            .value(channelTitle)
+                            .build())
+                    .unit(StandardUnit.COUNT)
+                    .build();
 
-        PutMetricDataRequest request = PutMetricDataRequest.builder()
-                .namespace(botConfig.getAwsForwardNamespace())
-                .metricData(metric)
-                .build();
+            PutMetricDataRequest request = PutMetricDataRequest.builder()
+                    .namespace(botConfig.getAwsForwardNamespace())
+                    .metricData(metric)
+                    .build();
 
-        cloudWatchClient.putMetricData(request);
+            cloudWatchClient.putMetricData(request);
+        } catch (Exception ex) {
+            log.info("Failed to send forward metric", ex);
+        }
     }
 }
