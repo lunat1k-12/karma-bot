@@ -1,6 +1,7 @@
 package com.coolguys.bot.service.external;
 
 import com.coolguys.bot.conf.BotConfig;
+import com.coolguys.bot.service.metrics.AwsMetricsService;
 import com.detectlanguage.DetectLanguage;
 import com.detectlanguage.Result;
 import com.detectlanguage.errors.APIError;
@@ -13,9 +14,12 @@ import java.util.List;
 @Service
 public class LanguageDetectorService {
 
-    public LanguageDetectorService(BotConfig botConfig) {
+    private final AwsMetricsService awsMetricsService;
+
+    public LanguageDetectorService(BotConfig botConfig, AwsMetricsService awsMetricsService) {
         log.info("Language API key: {}", botConfig.getLanguageDetectorApiKey());
         DetectLanguage.apiKey = botConfig.getLanguageDetectorApiKey();
+        this.awsMetricsService = awsMetricsService;
     }
 
     public Language checkMessageLanguage(String message) {
@@ -28,11 +32,14 @@ public class LanguageDetectorService {
                 log.info("Confidence: " + result.confidence);
             }
 
-            return results.stream()
+            Language lang = results.stream()
                     .filter(r -> r.isReliable)
                     .findFirst()
                     .map(r -> Language.getByCode(r.language))
                     .orElse(Language.NA);
+
+            awsMetricsService.sendLanguageMetric(lang.name());
+            return lang;
 
         } catch (APIError e) {
             log.error("Exception while Language detect", e);
