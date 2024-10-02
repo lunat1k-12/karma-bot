@@ -68,4 +68,31 @@ public class AwsMetricsService {
             log.info("Failed to send forward metric", ex);
         }
     }
+
+    public void sendLanguageMetric(String lang) {
+        if (lang == null) {
+            return;
+        }
+
+        try {
+            MetricDatum metric = MetricDatum.builder()
+                    .metricName("LanguageCount")
+                    .value(1D)
+                    .dimensions(Dimension.builder()
+                            .name("LanguageName")
+                            .value(lang)
+                            .build())
+                    .unit(StandardUnit.COUNT)
+                    .build();
+
+            PutMetricDataRequest request = PutMetricDataRequest.builder()
+                    .namespace(botConfig.getAwsLanguageNamespace())
+                    .metricData(metric)
+                    .build();
+
+            cloudWatchClient.putMetricData(request);
+        } catch (Exception ex) {
+            log.info("Failed to send language metric", ex);
+        }
+    }
 }

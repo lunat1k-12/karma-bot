@@ -31,4 +31,5 @@ public class BotConfig {
     private String setZodiacCommand;
     private String awsMetricNamespace;
     private String awsForwardNamespace;
+    private String awsLanguageNamespace;
 }
