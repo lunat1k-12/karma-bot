@@ -12,6 +12,7 @@ import com.coolguys.bot.repository.TelegramOrderRepository;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.model.Message;
 import com.pengrad.telegrambot.model.Sticker;
+import com.pengrad.telegrambot.model.message.MaybeInaccessibleMessage;
 import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.DeleteMessage;
 import com.pengrad.telegrambot.request.SendMessage;
@@ -64,9 +65,14 @@ public class OrderService {
                         QueryDataDto.REPLY_ORDER_TYPE)));
     }
 
-    public void checkOrders(Message message, String text, ChatAccount originUser, Income source) {
-        getActiveTelegramOrders(message.chat().id())
-                .forEach(order -> processReplyOrder(order, originUser, text, message.messageId(), source, message.sticker()));
+    public void checkOrders(MaybeInaccessibleMessage message, String text, ChatAccount originUser, Income source) {
+        if (message instanceof Message msg) {
+            getActiveTelegramOrders(message.chat().id())
+                    .forEach(order -> processReplyOrder(order, originUser, text, message.messageId(), source, msg.sticker()));
+        } else {
+            getActiveTelegramOrders(message.chat().id())
+                    .forEach(order -> processReplyOrder(order, originUser, text, message.messageId(), source, null));
+        }
     }
 
     private void processReplyOrder(TelegramOrder order, ChatAccount sender, String messageText, Integer messageId, Income source, Sticker sticker) {

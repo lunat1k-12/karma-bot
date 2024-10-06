@@ -16,8 +16,6 @@ import com.coolguys.bot.service.StealService;
 import com.coolguys.bot.service.ThiefInvestigateService;
 import com.coolguys.bot.service.UserService;
 import com.coolguys.bot.service.command.CommandProcessor;
-import com.coolguys.bot.service.external.ChatGPTService;
-import com.coolguys.bot.service.external.YesNoService;
 import com.coolguys.bot.service.external.ZodiacService;
 import com.coolguys.bot.service.metrics.AwsMetricsService;
 import com.coolguys.bot.service.role.RoleProcessor;
@@ -72,8 +70,6 @@ public class MessagesListener implements UpdatesListener {
     private final RoleProcessor roleProcessor;
     private final CommandProcessor commandProcessor;
     private final ThiefInvestigateService thiefInvestigateService;
-    private final YesNoService yesNoService;
-    private final ChatGPTService chatGPTService;
     private final DoctorService doctorService;
     private final ZodiacService zodiacService;
     private final AwsMetricsService awsMetricsService;
@@ -94,8 +90,6 @@ public class MessagesListener implements UpdatesListener {
                             TelegramChatRepository telegramChatRepository,
                             PrivateChatService privateChatService, RoleService roleService,
                             RoleProcessor roleProcessor, CommandProcessor commandProcessor,
-                            YesNoService yesNoService,
-                            ChatGPTService chatGPTService,
                             DoctorService doctorService, ZodiacService zodiacService,
                             AwsMetricsService awsMetricsService) {
         this.orderService = orderService;
@@ -109,11 +103,9 @@ public class MessagesListener implements UpdatesListener {
         this.privateChatService = privateChatService;
         this.commandProcessor = commandProcessor;
         this.thiefInvestigateService = thiefInvestigateService;
-        this.yesNoService = yesNoService;
         this.bot = bot;
         this.roleService = roleService;
         this.roleProcessor = roleProcessor;
-        this.chatGPTService = chatGPTService;
         this.doctorService = doctorService;
         this.zodiacService = zodiacService;
         this.awsMetricsService = awsMetricsService;
@@ -177,43 +169,43 @@ public class MessagesListener implements UpdatesListener {
                 switch (dto.getType()) {
                     case REPLY_ORDER_TYPE:
                         log.info("Reply order query");
-                        executeAction(query.message().chat().id(),
-                                () -> orderService.checkOrders(query.message(), dto.getOption(), originAcc, OrderService.Income.DATA));
+                        executeAction(query.maybeInaccessibleMessage().chat().id(),
+                                () -> orderService.checkOrders(query.maybeInaccessibleMessage(), dto.getOption(), originAcc, OrderService.Income.DATA));
                         break;
                     case STEAL_TYPE:
                         log.info("Steal query");
                         executeAction(originAcc.getChat().getId(),
-                                () -> stealService.processSteal(originAcc, dto, query.message().messageId()));
+                                () -> stealService.processSteal(originAcc, dto, query.maybeInaccessibleMessage().messageId()));
                         break;
                     case DROP_DRUGS_TYPE:
                         log.info("Drop drugs query");
                         executeAction(originAcc.getChat().getId(),
-                                () -> drugsService.processDropDrug(originAcc, dto, query.message().messageId()));
+                                () -> drugsService.processDropDrug(originAcc, dto, query.maybeInaccessibleMessage().messageId()));
                         break;
                     case ROLE_SELECT_TYPE:
                         log.info("Role select query");
                         executeAction(originAcc.getChat().getId(),
-                                () -> roleService.processRoleSelection(originAcc, dto, query.message().messageId()));
+                                () -> roleService.processRoleSelection(originAcc, dto, query.maybeInaccessibleMessage().messageId()));
                         break;
                     case ROLE_ACTION_TYPE:
                         log.info("Role Action selected");
                         executeAction(originAcc.getChat().getId(),
-                                () -> roleProcessor.processAction(originAcc, dto, query.message().messageId()));
+                                () -> roleProcessor.processAction(originAcc, dto, query.maybeInaccessibleMessage().messageId()));
                         break;
                     case THIEF_INVESTIGATE_TYPE:
                         log.info("Thief investigate type");
                         executeAction(originAcc.getChat().getId(),
-                                () -> thiefInvestigateService.processInvestigate(originAcc, dto, query.message().messageId()));
+                                () -> thiefInvestigateService.processInvestigate(originAcc, dto, query.maybeInaccessibleMessage().messageId()));
                         break;
                     case DOCTOR_DISEASE_TYPE:
                         log.info("Doctor disease type");
                         executeAction(originAcc.getChat().getId(),
-                                () -> doctorService.processDocSelection(originAcc, dto, query.message().messageId()));
+                                () -> doctorService.processDocSelection(originAcc, dto, query.maybeInaccessibleMessage().messageId()));
                         break;
                     case ZODIAC_TYPE:
                         log.info("Select zodiac type");
                         executeAction(originAcc.getChat().getId(),
-                                () -> zodiacService.processZodiacSelection(originAcc, dto, query.message().messageId()));
+                                () -> zodiacService.processZodiacSelection(originAcc, dto, query.maybeInaccessibleMessage().messageId()));
                 }
             }
         });
@@ -255,11 +247,6 @@ public class MessagesListener implements UpdatesListener {
                     () -> diceService.processDice(message, originAccount));
         } else if (message.text() != null) {
             log.info("Process text");
-            // TODO: Make it configurable
-//            executeAction(originAccount.getChat().getId(),
-//                    () -> yesNoService.answerIfNeeded(message, originAccount.getChat().getId()));
-//            executeAction(originAccount.getChat().getId(),
-//                    () -> chatGPTService.getAnswer(message, originAccount.getChat().getId()));
             executeAction(originAccount.getChat().getId(),
                     () -> {
                         messagesService.saveMessage(originAccount, message);
