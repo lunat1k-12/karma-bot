@@ -95,4 +95,31 @@ public class AwsMetricsService {
             log.info("Failed to send language metric", ex);
         }
     }
+
+    public void sendReactionMetric(String author) {
+        if (author == null) {
+            return;
+        }
+
+        try {
+            MetricDatum metric = MetricDatum.builder()
+                    .metricName("ReactionCount")
+                    .value(1D)
+                    .dimensions(Dimension.builder()
+                            .name("ReactionAuthor")
+                            .value(author)
+                            .build())
+                    .unit(StandardUnit.COUNT)
+                    .build();
+
+            PutMetricDataRequest request = PutMetricDataRequest.builder()
+                    .namespace(botConfig.getAwsMetricNamespace())
+                    .metricData(metric)
+                    .build();
+
+            cloudWatchClient.putMetricData(request);
+        } catch (Exception ex) {
+            log.info("Failed to send language metric", ex);
+        }
+    }
 }
