@@ -27,10 +27,12 @@ import com.pengrad.telegrambot.model.CallbackQuery;
 import com.pengrad.telegrambot.model.Chat;
 import com.pengrad.telegrambot.model.ChatMemberUpdated;
 import com.pengrad.telegrambot.model.Message;
+import com.pengrad.telegrambot.model.MessageReactionUpdated;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.User;
 import com.pengrad.telegrambot.model.message.origin.MessageOriginChannel;
 import com.pengrad.telegrambot.model.request.ChatAction;
+import com.pengrad.telegrambot.request.GetUpdates;
 import com.pengrad.telegrambot.request.SendChatAction;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.request.SendSticker;
@@ -110,7 +112,8 @@ public class MessagesListener implements UpdatesListener {
         this.zodiacService = zodiacService;
         this.awsMetricsService = awsMetricsService;
         log.info("Bot Token: {}", botConfig.getToken());
-        bot.setUpdatesListener(this);
+        bot.setUpdatesListener(this,
+                new GetUpdates().allowedUpdates("message_reaction", "message_reaction_count"));
     }
 
     public void sendMessage(Long chatId, String message) {
@@ -140,9 +143,15 @@ public class MessagesListener implements UpdatesListener {
             if (update.myChatMember() != null && !Chat.Type.Private.equals(update.myChatMember().chat().type())) {
                 updateChatMember(update.myChatMember());
             }
+
             if (update.poll() != null) {
                 log.info("Process Poll");
             }
+
+            if (update.messageReaction() != null) {
+                processReaction(update.messageReaction());
+            }
+
             if (update.message() != null) {
                 if (update.message().forwardOrigin() != null && "channel".equals(update.message().forwardOrigin().type())) {
                     MessageOriginChannel channel = (MessageOriginChannel) update.message().forwardOrigin();
@@ -226,8 +235,16 @@ public class MessagesListener implements UpdatesListener {
                 && !message.replyToMessage().from().isBot();
     }
 
+    private void processReaction(MessageReactionUpdated reaction) {
+        log.info("Process reaction: {}", reaction);
+        ChatAccount acc = userService.loadChatAccount(reaction);
+
+        log.info("User loaded: {}", acc);
+        awsMetricsService.sendReactionMetric(acc.getUser().getUsername());
+    }
+
     private void processMessage(Message message) {
-        log.info("proces message");
+        log.info("process message");
         ChatAccount originAccount = userService.loadChatAccount(message);
         awsMetricsService.sendMessageMetric(originAccount.getUser().getUsername());
         if (message.leftChatMember() != null) {

@@ -12,6 +12,7 @@ import com.coolguys.bot.repository.TelegramChatRepository;
 import com.coolguys.bot.repository.TelegramUserRepository;
 import com.pengrad.telegrambot.model.CallbackQuery;
 import com.pengrad.telegrambot.model.Message;
+import com.pengrad.telegrambot.model.MessageReactionUpdated;
 import com.pengrad.telegrambot.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -46,6 +47,13 @@ public class UserService {
             entity.setStatus(UserStatus.INACTIVE.getId());
             chatAccountRepository.save(entity);
         }
+    }
+
+    public ChatAccount loadChatAccount(MessageReactionUpdated reaction) {
+        ChatAccountEntity acc = chatAccountRepository.findByUserIdAndChatId(reaction.user().id(), reaction.chat().id())
+                .orElseGet(() -> createNewAccount(reaction));
+
+        return chatAccountMapper.toDto(acc);
     }
 
     public ChatAccount loadChatAccount(CallbackQuery query) {
@@ -109,6 +117,26 @@ public class UserService {
                 .lastName(from.lastName())
                 .firstName(from.firstName())
                 .id(from.id())
+                .build());
+    }
+
+    private ChatAccountEntity createNewAccount(MessageReactionUpdated reaction) {
+        TelegramUserEntity userEntity = telegramUserRepository.findById(reaction.user().id())
+                .orElseGet(() -> createNewUser(reaction.user()));
+
+        TelegramChatEntity chatEntity = telegramChatRepository.findById(reaction.chat().id())
+                .orElseGet(() -> telegramChatRepository.save(TelegramChatEntity.builder()
+                        .premium(false)
+                        .active(true)
+                        .name(reaction.chat().title())
+                        .id(reaction.chat().id())
+                        .build()));
+
+        return chatAccountRepository.save(ChatAccountEntity.builder()
+                .user(userEntity)
+                .status(UserStatus.ACTIVE.getId())
+                .socialCredit(0)
+                .chat(chatEntity)
                 .build());
     }
 
