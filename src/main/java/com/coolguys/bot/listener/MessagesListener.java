@@ -80,6 +80,11 @@ public class MessagesListener implements UpdatesListener {
     public static final String UNIQ_PLUS_ID = "AgADAgADf3BGHA";
     public static final String UNIQ_MINUS_ID = "AgADAwADf3BGHA";
 
+    private static final String[] ALLOWED_UPDATES = new String[]{"message_reaction",
+            "message_reaction_count", "message", "edited_message",
+    "channel_post", "edited_channel_post", "inline_query", "chosen_inline_result", "callback_query", "poll",
+    "poll_answer", "my_chat_member", "chat_member", "chat_join_request", "chat_boost", "removed_chat_boost"};
+
     private final TelegramBot bot;
 
     @Autowired
@@ -113,7 +118,7 @@ public class MessagesListener implements UpdatesListener {
         this.awsMetricsService = awsMetricsService;
         log.info("Bot Token: {}", botConfig.getToken());
         bot.setUpdatesListener(this,
-                new GetUpdates().allowedUpdates("message_reaction", "message_reaction_count"));
+                new GetUpdates().allowedUpdates(ALLOWED_UPDATES));
     }
 
     public void sendMessage(Long chatId, String message) {
